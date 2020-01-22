@@ -19,12 +19,15 @@ def parse_drugbank_xml(file_name: str,
     '''
     
     # open xml file
+    print("Opening XML file...")
     with open(file_name, "r") as file:
         
         # convert xml to soup
+        print("Creating XML file soup...")
         soup = BeautifulSoup(file.read(), "xml")
         
         # extract soup for each drug into a list
+        print("Extracting all drug-related XML...")
         drugs = soup.find_all("drug")
      
     def parse_drug_info(drug_soup, atc_codes=None):
@@ -63,7 +66,9 @@ def parse_drugbank_xml(file_name: str,
                 return record               
     
     all_drugs = []
+    print(f"Extracting info for all {len(drugs)} drugs...")
     if mp:
+        print(f"Multiprocessing with {mp} workers...")
         pool = ThreadPool(mp)
         arguments = zip(drugs,
                         repeat(atc_codes))
@@ -73,6 +78,7 @@ def parse_drugbank_xml(file_name: str,
         pool.join()
         
     else:
+        print("Looping over drugs...")
         for drug in drugs:
             output = parse_drug_info(drug, atc_codes)
             if output:
