@@ -46,7 +46,10 @@ def parse_drugbank_xml(file_name: str,
         if drug_soup.find("atc-codes"):
 
             # extract ATC code
-            atc_code = drug_soup.find("atc-codes").find("atc-code").get("code")
+            if drug_soup.find("atc-codes").find("atc-code"):
+                atc_code = drug_soup.find("atc-codes").find("atc-code").get("code")
+            else:
+                atc_code = None
 
             # if drug is in SIDER data then find other data and add to record
             if atc_code in atc_codes:
