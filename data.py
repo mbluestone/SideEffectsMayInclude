@@ -1,27 +1,37 @@
 from pysmiles import read_smiles
 import networkx as nx
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 
-from torch.utils.data import Dataset
+from torch-geometric.data import Data, Dataset
 
-class Molecule():
-    def __init__(self, smiles: str):
+class Molecule(Data):
+    '''
+    Molecule Data Class
+    Subclass of torch-geometric.data.Data
+    '''
+    def __init__(self, smiles_string: str):
         
-        
-        self.smiles = smiles
+        # smiles string
+        self.smiles_string = smiles_string
 
         # create graph from smiles
-        self.graph = read_smiles(self.smiles)
+        self.graph = read_smiles(self.smiles_string)
         
         # create adjacency matrix from graph
         self.adjacency_matrix = nx.to_numpy_matrix(self.graph, weight='order')
         
+        # load atom dict for converting atomic symbol to atomic number
         self.atom_dict = pd.read_csv('raw_data/atom_info.txt',sep=',').set_index('Symbol')['AtomicNumber'].to_dict()
         
+        super().__init__(x = torch.tensor(self.extract_features()),
+                         edge_index = self.graph)
+        
     def __str__(self):
-        pass
+        print('SMILES:',self.s)
+        print('Molecule structure:\n',nx.draw(self.graph))
     
     def __len__(self):
         return len(self.graph.nodes)
