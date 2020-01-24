@@ -6,7 +6,8 @@ import argparse
 
 def parse_drugbank_xml(file_name: str, 
                        atc_codes: list = None, 
-                       mp: int = None) -> pd.DataFrame:
+                       mp: int = None,
+                       filter_sider: bool = True) -> pd.DataFrame:
     '''
     Parse the drug codes and info from the large XML file 
     downloaded from DrugBank.
@@ -30,7 +31,7 @@ def parse_drugbank_xml(file_name: str,
         print("Extracting all drug-related XML...")
         drugs = soup.find_all("drug")
      
-    def parse_drug_info(drug_soup, atc_codes=None):
+    def parse_drug_info(drug_soup, atc_codes=None, filter_sider=True):
         '''
         Parse the drug codes and info for one drug.
 
@@ -51,9 +52,29 @@ def parse_drugbank_xml(file_name: str,
             else:
                 atc_code = None
 
-            # if drug is in SIDER data then find other data and add to record
-            if atc_code in atc_codes:
+            # if filtering by SIDER data
+            if filter_sider:
+                
+                # if drug is in SIDER data then find other data and add to record
+                if atc_code in atc_codes:
 
+                    # extract name
+                    name = drug_soup.find("name").text.lower()
+
+                    # extract DrugBank ID
+                    db_id = drug_soup.find("drugbank-id", {"primary":"true"}).text
+
+                    # combine data in record
+                    record = {"drug_name": name,
+                              "drugbank_id": db_id,
+                              "drug_atc_code": atc_code}
+
+                    # add to full list of drugs
+                    return record
+              
+            # if you want all data
+            else:
+                
                 # extract name
                 name = drug_soup.find("name").text.lower()
 
@@ -66,7 +87,7 @@ def parse_drugbank_xml(file_name: str,
                           "drug_atc_code": atc_code}
 
                 # add to full list of drugs
-                return record               
+                return record
     
     all_drugs = []
     print(f"Extracting info for all {len(drugs)} drugs...")
@@ -74,7 +95,8 @@ def parse_drugbank_xml(file_name: str,
         print(f"Multiprocessing with {mp} workers...")
         pool = ThreadPool(mp)
         arguments = zip(drugs,
-                        repeat(atc_codes))
+                        repeat(atc_codes),
+                        repeat(filter_sider))
         output = pool.starmap(parse_drug_info, arguments)
         all_drugs = [record for record in output if isinstance(record,dict)]
         pool.close()
@@ -83,7 +105,7 @@ def parse_drugbank_xml(file_name: str,
     else:
         print("Looping over drugs...")
         for drug in drugs:
-            output = parse_drug_info(drug, atc_codes)
+            output = parse_drug_info(drug, atc_codes, filter_sider)
             if output:
                 all_drugs.append(output)
                 
@@ -105,6 +127,10 @@ if __name__ == '__main__':
                         type=int, 
                         help="number of multiprocessing workers", 
                         default=None)
+    parser.add_argument("--filter_sider", 
+                        type=bool, 
+                        help="whether or not to filter data by what drugs are in SIDER", 
+                        default=True)
     parser.add_argument("--save_path", 
                         type=str, 
                         help="save path for the output data (default=None, if no save name then don't save and print instead)", 
@@ -117,7 +143,8 @@ if __name__ == '__main__':
 
     data = parse_drugbank_xml(file_name = args.input_file, 
                               atc_codes = atc_codes, 
-                              mp = args.mp)
+                              mp = args.mp,
+                              filter_sider = arg.filter_sider)
     
     if args.save_path:
         data.to_csv(args.save_path)
