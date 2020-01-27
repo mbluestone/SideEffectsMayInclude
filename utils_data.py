@@ -166,7 +166,7 @@ class Molecule(Data):
 class MoleculeDataset():
     """Molecules dataset."""
 
-    def __init__(self, X, y, transform=None):
+    def __init__(self, Xy, transform=None):
         """
         Args:
             X (NumPy matrix or Pandas DataFrame, n_samples*n_features): SMILES data.
@@ -174,14 +174,14 @@ class MoleculeDataset():
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.X = X
-        self.y = y
+        self.X = Xy[0]
+        self.y = Xy[1]
         self.transform = transform
-        if isinstance(y, pd.DataFrame):
-            self.labels = y.columns.tolist()
+        if isinstance(self.y, pd.DataFrame):
+            self.labels = self.y.columns.tolist()
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.X.shape[0]
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
