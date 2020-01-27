@@ -27,10 +27,7 @@ def split_data(X, y, test_split = 0.2, val_split = 0.2, save_path = None):
     Function to split the data into train/val/test datasets
     '''
     
-    X_column_names = None
-    y_column_names = None
-    
-    # handle X input
+    # handle X input and extract column names if possible
     if isinstance(X, pd.DataFrame): # if dataframe
         X_column_names = X.columns
         X = np.matrix(X)  
@@ -42,7 +39,7 @@ def split_data(X, y, test_split = 0.2, val_split = 0.2, save_path = None):
     elif not isinstance(X, np.matrix): # if neither
         raise Exception(f'X must be an object of type np.matrix or pd.DataFrame and not {type(X)}')
         
-    # handle y input
+    # handle y input and extract column names if possible
     if isinstance(y, pd.DataFrame): # if dataframe
         y_column_names = y.columns
         y = np.matrix(y) 
@@ -63,12 +60,12 @@ def split_data(X, y, test_split = 0.2, val_split = 0.2, save_path = None):
     X_train, y_train, X_val, y_val = iterative_train_test_split(X,y,test_size = val_split)
     
     # convert back to dataframe
-    X_train = pd.DataFrame(X_train,columns=X_column_names),
-    y_train = pd.DataFrame(y_train,columns=y_column_names), 
-    X_val = pd.DataFrame(X_val,columns=X_column_names), 
-    y_val = pd.DataFrame(y_val,columns=y_column_names), 
-    X_test = pd.DataFrame(X_test,columns=X_column_names), 
-    y_test = pd.DataFrame(y_test,columns=y_column_names)
+    X_train = pd.DataFrame(X_train,columns=X_column_names)
+    y_train = pd.DataFrame(y_train,columns=y_column_names)[0]
+    X_val = pd.DataFrame(X_val,columns=X_column_names)
+    y_val = pd.DataFrame(y_val,columns=y_column_names)[0]
+    X_test = pd.DataFrame(X_test,columns=X_column_names)
+    y_test = pd.DataFrame(y_test,columns=y_column_names)[0]
     
     # save is path is provided then save the split data separately
     if save_path:
@@ -111,9 +108,6 @@ class Molecule(Data):
         
         # remove graph attribute, necessary to inhereit from superclass
         del self.graph
-    
-    #def __len__(self):
-     #   return len(self.graph.nodes)
     
     def extract_features(self):
         
@@ -174,14 +168,16 @@ class MoleculeDataset():
     def __init__(self, X, y, transform=None):
         """
         Args:
-            X (NumPy matrix, n_samples*n_features): SMILES data.
-            y (NumPy matrix, n_samples*n_labels): multilabel classifications.
+            X (NumPy matrix or Pandas DataFrame, n_samples*n_features): SMILES data.
+            y (NumPy matrix or Pandas DataFrame, n_samples*n_labels): multilabel classifications.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
         self.X = X
         self.y = y
         self.transform = transform
+        if isinstance(y, pd.DataFrame):
+            self.labels = y.columns.tolist()
 
     def __len__(self):
         return self.data.shape[0]
@@ -190,7 +186,7 @@ class MoleculeDataset():
         if torch.is_tensor(idx):
             idx = idx.tolist()
             
-        molecule = Molecule(self.X[idx],
+        molecule = Molecule(self.X.iloc[idx,0],
                            self.y.loc[idx,:].tolist())
 
         if self.transform:
@@ -198,9 +194,9 @@ class MoleculeDataset():
 
         return molecule
     
+    # override unneccesary functions from super class
     def _download(self):
         pass
-
     def _process(self):
         pass
     
@@ -208,8 +204,8 @@ class MoleculeDataset():
         if torch.is_tensor(idx):
             idx = idx.tolist()
             
-        molecule = Molecule(self.X[idx].item(),
-                           self.y[idx].tolist()[0])
+        molecule = Molecule(self.X.iloc[idx,0],
+                           self.y.loc[idx,:].tolist())
 
         if self.transform:
             molecule = self.transform(molecule)

@@ -99,7 +99,6 @@ def get_pos_weights(labels):
     return torch.tensor(weights)
 
 def train_model(data_dir: str,
-                labels: list,
                 num_epochs: int,
                 num_graph_layers: int,
                 num_linear_layers: int,
@@ -126,6 +125,10 @@ def train_model(data_dir: str,
                                      transform=AddSelfLoops())
                 for x in ['train', 'val']}
     
+    # get labels
+    labels = datasets['train'].labels
+    assert datasets['train'].labels == datasets['val'].labels
+    
     # create dataloaders
     dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
                    for x in ['train', 'val']}
@@ -146,10 +149,10 @@ def train_model(data_dir: str,
     
     pos_weights = get_pos_weights()
     
-    train_helper(model, num_epochs, dataloaders, criterion)
+    train_helper(model, labels, num_epochs, dataloaders, criterion)
     
 
-def train_helper(model, num_epochs, dataloaders, criterion):
+def train_helper(model, labels, num_epochs, dataloaders, criterion):
     '''
     Helper function for training model
     
