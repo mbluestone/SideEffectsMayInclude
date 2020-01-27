@@ -15,23 +15,6 @@ from os.path import join as path_join
 
 from sklearn.metrics import accuracy_score, recall, precision, f1_score, confusion_matrix
 
-#### DATA #####
-#load
-data_path = '~/github/MolNet/raw_data/sider_data/sider.csv'
-sider_data = pd.read_csv(data_path)
-smiles_list = sider_data.smiles.to_list()
-dataset = MoleculeDataset(data_path, transform=AddSelfLoops())
-
-train_path = '~/github/MolNet/raw_data/sider_data/train_sider.csv'
-val_path = '~/github/MolNet/raw_data/sider_data/val_sider.csv'
-test_path = '~/github/MolNet/raw_data/sider_data/test_sider.csv'
-
-train_dataloader = DataLoader(train_dataset,batch_size=50,shuffle=True)
-val_dataloader = DataLoader(val_dataset,batch_size=50,shuffle=True)
-
-
-class_names = image_datasets['train'].classes
-
 
 #### MODEL CLASS #####
 class MoleculeNet(torch.nn.Module):
@@ -42,6 +25,7 @@ class MoleculeNet(torch.nn.Module):
                  num_linear_layers: int):
         
         super(Net, self).__init__()
+        self.num_node_features = num_node_features
         self.conv1 = GCNConv(num_node_features, 16)
         self.conv2 = GCNConv(16, 16)
         self.lin1 = Linear(16,100)
@@ -71,7 +55,8 @@ def create_model(model_type: str,
                  num_classes: int,
                  num_graph_layers=None: int,
                  num_linear_layers: int, 
-                 pretrain_load_path=None: str) -> MoleculeNet:
+                 pretrain_load_path=None: str,
+                 device) -> MoleculeNet:
     """
     Instantiate the model.
     Args:
@@ -108,11 +93,10 @@ def create_model(model_type: str,
                             num_linear_layers).to(device)
     
 
-    if pretrain:
-        pretrained = model_constructor(pretrained=True).state_dict()
-        if num_classes != pretrained["fc.weight"].size(0):
-            del pretrained["fc.weight"], pretrained["fc.bias"]
-        model.load_state_dict(state_dict=pretrained, strict=False)
+    # if loading a pretrained model from a state dict
+    if pretrain_load_path:
+        model.load_state_dict(torch.load(pretrain_load_path, map_location=device))
+        
     return model
 
 def get_pos_weights(labels):
@@ -124,6 +108,7 @@ def get_pos_weights(labels):
     return torch.tensor(weights)
 
 def train_model(data_dir: str,
+                model_type: str,
                 num_epochs: int,
                 num_graph_layers: int,
                 num_linear_layers: int,
@@ -135,15 +120,7 @@ def train_model(data_dir: str,
     
     Args:
         num_epochs
-    '''
-    
-    # load data
-    
-    # use gpu if available
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
-    num_node_features = 4
-    
+    '''    
     
     # load datasets
     datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x)),
@@ -154,6 +131,9 @@ def train_model(data_dir: str,
     labels = datasets['train'].labels
     assert datasets['train'].labels == datasets['val'].labels
     
+    # get number of features for the nodes
+    num_node_features = len(datasets['train'].x[0])
+    
     # create dataloaders
     dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
                    for x in ['train', 'val']}
@@ -161,20 +141,28 @@ def train_model(data_dir: str,
     # get the size of each dataset
     dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
     
-    datasets['train'][0].y 
+    # use gpu if available
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
-    # 
-    model = create_model(num_node_features, num_classes)
+    # instantiate model
+    model = create_model(model_type='graph',
+                         num_node_features=num_node_features,
+                         num_classes=len(labels),
+                         num_graph_layers=2,
+                         num_linear_layers=3,
+                         pretrain_load_path=None,
+                         device=device)
     
+    # instantiate optimizer
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     # initialize loss function
-    criterion = BCEWithLogitsLoss(pos_weights=get_pos_weights())
-    
-    
-    pos_weights = get_pos_weights()
-    
+    criterion = BCEWithLogitsLoss(pos_weights=get_pos_weights(labels))
+
+    # run train helper
     train_helper(model, labels, num_epochs, dataloaders, criterion)
+    
+    print('Training is complete!')
     
 
 def train_helper(model, labels, num_epochs, dataloaders, criterion):
