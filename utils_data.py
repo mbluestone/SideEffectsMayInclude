@@ -51,7 +51,8 @@ def split_data(X, y, test_split = 0.2, val_split = 0.2, save_path = None):
     elif not isinstance(y, np.matrix): # if neither
         raise Exception(f'y must be an object of type np.matrix or pd.DataFrame and not {type(y)}')
         
-    assert y.shape[0] == X.shape[0]
+    # make sure X and y are the same size
+    assert y.shape[0] == X.shape[0], f'X and y do not have the same number of samples, {X.shape[0]} and {y.shape[0]}'
     
     # split train/val and test data
     X, y, X_test, y_test = iterative_train_test_split(X,y,test_size = test_split)
