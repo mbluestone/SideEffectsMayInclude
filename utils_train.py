@@ -114,7 +114,8 @@ def train_model(data_dir: str,
                 num_linear_layers: int,
                 learning_rate: int,
                 weight_decay: int, 
-                batch_size: int):
+                batch_size: int,
+                pretrain_load_path: str =None):
     '''
     Function for training model
     
@@ -145,12 +146,12 @@ def train_model(data_dir: str,
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # instantiate model
-    model = create_model(model_type='graph',
+    model = create_model(model_type=model_type,
                          num_node_features=num_node_features,
                          num_classes=len(labels),
-                         num_graph_layers=2,
-                         num_linear_layers=3,
-                         pretrain_load_path=None,
+                         num_graph_layers=num_graph_layers,
+                         num_linear_layers=num_linear_layers,
+                         pretrain_load_path=pretrain_load_path,
                          device=device)
     
     # instantiate optimizer
