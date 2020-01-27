@@ -46,7 +46,6 @@ class MoleculeNet(torch.nn.Module):
         self.conv2 = GCNConv(16, 16)
         self.lin1 = Linear(16,100)
         self.lin2 = Linear(100,num_classes)
-        self.sig = Sigmoid()
 
     def forward(self, data):
         
@@ -67,9 +66,11 @@ class MoleculeNet(torch.nn.Module):
         return x
 
 
-def create_model(num_graph_layers: int,
-                 num_linear_layers: int, 
+def create_model(model_type: str,
+                 num_node_features: int,
                  num_classes: int,
+                 num_graph_layers=None: int,
+                 num_linear_layers: int, 
                  pretrain_load_path=None: str) -> MoleculeNet:
     """
     Instantiate the model.
@@ -81,7 +82,31 @@ def create_model(num_graph_layers: int,
         The instantiated model with the requested parameters.
     """
 
-    model = MoleculeNet(num_node_features, num_classes).to(device)
+    # make sure a correct model type is requested
+    possible_models = ['graph', 'nlp', 'bert', 'combo']
+    assert model_type.lower() in possible_models, f"Model type must be one of {possible_models} not {model_type}"
+    
+    # if only graph model is desired
+    if model_type.lower() == 'graph':
+        model = MoleculeNet(num_node_features, 
+                            num_classes, 
+                            num_graph_layers, 
+                            num_linear_layers).to(device)
+        
+    # if only BERT model is desired
+    if model_type.lower() == 'bert':
+        model = MoleculeNet(num_node_features, 
+                            num_classes, 
+                            num_graph_layers, 
+                            num_linear_layers).to(device)
+        
+    # if combo model is desired
+    if model_type.lower() == 'combo':
+        model = MoleculeNet(num_node_features, 
+                            num_classes, 
+                            num_graph_layers, 
+                            num_linear_layers).to(device)
+    
 
     if pretrain:
         pretrained = model_constructor(pretrained=True).state_dict()
