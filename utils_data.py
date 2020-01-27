@@ -22,7 +22,7 @@ def load_raw_data(path):
     
     return X, y
 
-def split_data(X, y, test_split = 0.2, val_split = 0.2, save_path = None):
+def split_data(X, y, test_split = 0.2, val_split = 0.1, save_path = None):
     '''
     Function to split the data into train/val/test datasets
     '''
@@ -62,11 +62,11 @@ def split_data(X, y, test_split = 0.2, val_split = 0.2, save_path = None):
     
     # convert back to dataframe
     X_train = pd.DataFrame(X_train,columns=X_column_names)
-    y_train = pd.DataFrame(y_train,columns=y_column_names)[0]
+    y_train = pd.DataFrame(y_train,columns=y_column_names)
     X_val = pd.DataFrame(X_val,columns=X_column_names)
-    y_val = pd.DataFrame(y_val,columns=y_column_names)[0]
+    y_val = pd.DataFrame(y_val,columns=y_column_names)
     X_test = pd.DataFrame(X_test,columns=X_column_names)
-    y_test = pd.DataFrame(y_test,columns=y_column_names)[0]
+    y_test = pd.DataFrame(y_test,columns=y_column_names)
     
     # save is path is provided then save the split data separately
     if save_path:
