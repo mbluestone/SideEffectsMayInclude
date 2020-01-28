@@ -196,6 +196,7 @@ def train_model(data_dir: str,
         
         # train the model
         train_helper(model=model,
+                     device=device,
                      optimizer=optimizer,
                      scheduler=scheduler,
                      labels=labels, 
@@ -209,6 +210,7 @@ def train_model(data_dir: str,
     
 
 def train_helper(model: torch.nn.Module,
+                 device: torch.device,
                  optimizer,
                  scheduler,
                  labels: list, 
@@ -256,6 +258,10 @@ def train_helper(model: torch.nn.Module,
             
             # pull out batch labels
             train_batch_labels = inputs.y.numpy()
+            
+            # send to device
+            train_batch_labels = train_batch_labels.to(device)
+            inputs = inputs.to(device)
 
             # 
             optimizer.zero_grad()
@@ -320,6 +326,10 @@ def train_helper(model: torch.nn.Module,
             
             # pull out batch labels
             val_batch_labels = inputs.y.numpy()
+            
+            # send to device
+            val_batch_labels = val_batch_labels.to(device)
+            inputs = inputs.to(device)
 
             with torch.set_grad_enabled(mode=False):
                 
