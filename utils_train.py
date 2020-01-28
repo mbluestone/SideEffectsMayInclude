@@ -177,6 +177,7 @@ def train_model(data_dir: str,
                          num_classes=len(labels),
                          num_graph_layers=num_graph_layers,
                          num_linear_layers=num_linear_layers,
+                         dropout_rate=dropout_rate,
                          pretrain_load_path=pretrain_load_path,
                          device=device)
     
