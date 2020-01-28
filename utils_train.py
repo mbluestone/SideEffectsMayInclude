@@ -289,7 +289,7 @@ def train_helper(model: torch.nn.Module,
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
                 
-                train_bath_probs = torch.sigmoid(out).detach().cpu().numpy()
+                train_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
                 train_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
                 
                 # backpropagate
@@ -365,7 +365,7 @@ def train_helper(model: torch.nn.Module,
                 # calculate loss
                 val_loss = criterion(out, inputs.y)
                 
-                val_bath_probs = torch.sigmoid(out).detach().cpu().numpy()
+                val_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
                 val_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
                 
                 # calculate performance metrics
@@ -373,7 +373,7 @@ def train_helper(model: torch.nn.Module,
                 val_precision = precision_score(val_batch_labels,val_batch_predictions,average='micro')
                 val_recall = recall_score(val_batch_labels,val_batch_predictions,average='micro')
                 val_f1 = f1_score(val_batch_labels,val_batch_predictions,average='micro')
-                val_roc_auc = roc_auc_score(val_batch_labels,val_batch_predictions,average='micro')
+                val_roc_auc = roc_auc_score(val_batch_labels,val_batch_probs,average='micro')
 
             # update running metrics
             val_running_loss += val_loss.item() * inputs.y.size(0)
