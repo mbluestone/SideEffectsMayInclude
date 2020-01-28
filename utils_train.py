@@ -260,9 +260,10 @@ def train_helper(model: torch.nn.Module,
             train_batch_labels = inputs.y.numpy()
             
             # send to device
-            inputs = inputs.to(device)
-            print(inputs.device)
-            print(inputs.y.device)
+            inputs.y = inputs.y.to(device)
+            inputs.x = inputs.x.to(device)
+            inputs.edge_index = inputs.edge_index.to(device)
+            inputs.batch_vec = inputs.batch_vec.to(device)
 
             # 
             optimizer.zero_grad()
