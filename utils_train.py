@@ -23,7 +23,7 @@ from os import mkdir
 from os.path import join as path_join
 from os.path import dirname
 
-from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_score, confusion_matrix
+from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_score, confusion_matrix, roc_auc_score
 
 
 #### MODEL CLASS #####
@@ -205,7 +205,7 @@ def train_model(data_dir: str,
         writer = csv.writer(file)
         
         # write header
-        writer.writerow(['epoch','train_loss','train_acc','train_f1','val_loss','val_acc','val_f1'])
+        writer.writerow(['epoch','train_loss','train_acc','train_f1','train_roc_auc','val_loss','val_acc','val_f1','val_roc_auc'])
         
         # train the model
         train_helper(model=model,
@@ -265,6 +265,7 @@ def train_helper(model: torch.nn.Module,
         train_running_precision = 0.0
         train_running_recall = 0.0
         train_running_f1 = 0.0
+        train_running_roc_auc = 0.0
 
         # loop through batched training data
         for inputs in dataloaders['train']:
@@ -288,6 +289,7 @@ def train_helper(model: torch.nn.Module,
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
                 
+                train_bath_probs = torch.sigmoid(out).cpu().numpy()
                 train_batch_predictions = (torch.sigmoid(out)>0.5).cpu().numpy()
                 
                 # backpropagate
@@ -301,6 +303,7 @@ def train_helper(model: torch.nn.Module,
                 train_precision = precision_score(train_batch_labels,train_batch_predictions,average='micro')
                 train_recall = recall_score(train_batch_labels,train_batch_predictions,average='micro')
                 train_f1 = f1_score(train_batch_labels,train_batch_predictions,average='micro')
+                train_roc_auc = roc_auc_score(train_batch_labels,train_batch_probs,average='micro')
                 
             # update running metrics
             train_running_loss += train_loss.item() * inputs.y.size(0)
@@ -308,6 +311,7 @@ def train_helper(model: torch.nn.Module,
             train_running_precision += train_precision * inputs.y.size(0)
             train_running_recall += train_recall * inputs.y.size(0)
             train_running_f1 += train_f1 * inputs.y.size(0)
+            train_running_roc_auc += train_roc_auc * inputs.y.size(0)
 
         # calculate training metrics for the epoch
         epoch_train_loss = np.round(train_running_loss/dataset_sizes['train'],
@@ -320,12 +324,15 @@ def train_helper(model: torch.nn.Module,
                                   decimals=4)
         epoch_train_f1 = np.round(train_running_f1/dataset_sizes['train'],
                                   decimals=4)
+        epoch_train_roc_auc = np.round(train_running_roc_auc/dataset_sizes['train'], decimals=4)
 
-        print(f'Training: Loss = {epoch_train_loss}, ' 
+        print(f'Training:\n'
+              f'Loss = {epoch_train_loss}, ' 
               f'Accuracy = {epoch_train_acc}, '
               f'Precision = {epoch_train_precision}, '
               f'Recall = {epoch_train_recall}, '
-              f'F1 = {epoch_train_f1}')   
+              f'F1 = {epoch_train_f1}, '
+              f'ROC_AUC = {epoch_train_roc_auc}')   
 
         # Validation
         model.eval()
@@ -336,6 +343,7 @@ def train_helper(model: torch.nn.Module,
         val_running_precision = 0.0
         val_running_recall = 0.0
         val_running_f1 = 0.0
+        val_running_roc_auc = 0.0
 
         # loop through batched validation data
         for inputs in dataloaders['val']:
@@ -357,6 +365,7 @@ def train_helper(model: torch.nn.Module,
                 # calculate loss
                 val_loss = criterion(out, inputs.y)
                 
+                val_bath_probs = torch.sigmoid(out).cpu().numpy()
                 val_batch_predictions = (torch.sigmoid(out)>0.5).cpu().numpy()
                 
                 # calculate performance metrics
@@ -364,6 +373,7 @@ def train_helper(model: torch.nn.Module,
                 val_precision = precision_score(val_batch_labels,val_batch_predictions,average='micro')
                 val_recall = recall_score(val_batch_labels,val_batch_predictions,average='micro')
                 val_f1 = f1_score(val_batch_labels,val_batch_predictions,average='micro')
+                val_roc_auc = roc_auc_score(val_batch_labels,val_batch_predictions,average='micro')
 
             # update running metrics
             val_running_loss += val_loss.item() * inputs.y.size(0)
@@ -371,6 +381,7 @@ def train_helper(model: torch.nn.Module,
             val_running_precision += val_precision * inputs.y.size(0)
             val_running_recall += val_recall * inputs.y.size(0)
             val_running_f1 += val_f1 * inputs.y.size(0)
+            val_running_roc_auc += val_roc_auc * inputs.y.size(0)
 
         # calculate validation metrics for the epoch
         epoch_val_loss = np.round(val_running_loss/dataset_sizes['val'],
@@ -383,6 +394,8 @@ def train_helper(model: torch.nn.Module,
                                   decimals=4)
         epoch_val_f1 = np.round(val_running_f1/dataset_sizes['val'],
                                   decimals=4)
+        epoch_val_roc_auc = np.round(val_running_roc_auc/dataset_sizes['val'],
+                                     decimals=4)
         
         # empty cuda cache
         if torch.cuda.is_available():
@@ -391,16 +404,18 @@ def train_helper(model: torch.nn.Module,
         # step scheduler
         scheduler.step()
 
-        print(f'Validation: Loss = {epoch_val_loss}, ' 
+        print(f'Validation:\n'
+              f'Loss = {epoch_val_loss}, ' 
               f'Accuracy = {epoch_val_acc}, '
               f'Precision = {epoch_val_precision}, '
               f'Recall = {epoch_val_recall}, '
-              f'F1 = {epoch_val_f1}')    
+              f'F1 = {epoch_val_f1}, '
+              f'ROC_AUC = {epoch_val_roc_auc}, ')    
         
         # log metrics in log csv
-        writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
-            str(epoch), epoch_train_loss, epoch_train_acc, epoch_train_f1,
-            epoch_val_loss, epoch_val_acc, epoch_val_f1).split(','))
+        writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
+            str(epoch), epoch_train_loss, epoch_train_acc, epoch_train_f1, epoch_train_roc_auc,
+            epoch_val_loss, epoch_val_acc, epoch_val_f1, epoch_train_roc_auc).split(','))
 
     #writer.close()
     
