@@ -261,6 +261,8 @@ def train_helper(model: torch.nn.Module,
             
             # send to device
             inputs = inputs.to(device)
+            print(inputs)
+            print(inputs.y)
 
             # 
             optimizer.zero_grad()
@@ -268,6 +270,7 @@ def train_helper(model: torch.nn.Module,
                 
                 # make predicitions
                 out = model(inputs)
+                print(out)
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
