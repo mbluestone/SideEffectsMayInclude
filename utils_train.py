@@ -272,8 +272,6 @@ def train_helper(model: torch.nn.Module,
                 
                 # make predicitions
                 out = model(inputs)
-                print(out.device)
-                print(inputs.y.device)
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
@@ -334,7 +332,10 @@ def train_helper(model: torch.nn.Module,
             val_batch_labels = inputs.y.numpy()
             
             # send to device
-            inputs = inputs.to(device)
+            inputs.y = inputs.y.to(device)
+            inputs.x = inputs.x.to(device)
+            inputs.edge_index = inputs.edge_index.to(device)
+            inputs.batch = inputs.batch.to(device)
 
             with torch.set_grad_enabled(mode=False):
                 
