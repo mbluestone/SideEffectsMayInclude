@@ -184,6 +184,7 @@ def train_model(data_dir: str,
 
     # initialize loss function
     criterion = BCEWithLogitsLoss(pos_weight=get_pos_weights(datasets['train'].y))
+    criterion = criterion.to(device)
 
     # create the logging csv
     if not os.path.exists(dirname(log_csv)):
@@ -272,7 +273,7 @@ def train_helper(model: torch.nn.Module,
                 # make predicitions
                 out = model(inputs)
                 print(out.device)
-                print(inpputs.y.device)
+                print(inputs.y.device)
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
