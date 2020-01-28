@@ -3,8 +3,6 @@
 
 # Using a graph/NLP model to train and test.
 
-import config
-
 import torch
 from torch.nn import Linear, BCEWithLogitsLoss
 import torch.nn.functional as F
