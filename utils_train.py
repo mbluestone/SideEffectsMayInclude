@@ -51,7 +51,7 @@ class MoleculeNet(torch.nn.Module):
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
-        x = F.relu(sum_vector)
+        x = F.relu(x)
         x = F.dropout(x, training=self.training)
         sum_vector = global_add_pool(x, batch = batch_vec)
         x = self.lin1(x)
