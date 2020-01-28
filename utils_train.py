@@ -4,7 +4,7 @@
 # Using a graph/NLP model to train and test.
 
 import torch
-from torch.nn import Linear, BCEWithLogitsLoss
+from torch.nn import Linear, Dropout, BCEWithLogitsLoss
 import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim import lr_scheduler
@@ -32,7 +32,8 @@ class MoleculeNet(torch.nn.Module):
                  num_node_features: int, 
                  num_classes: int, 
                  num_graph_layers: int,
-                 num_linear_layers: int):
+                 num_linear_layers: int,
+                 dropout_rate: float):
         
         super(MoleculeNet, self).__init__()
         self.num_node_features = num_node_features
@@ -40,6 +41,7 @@ class MoleculeNet(torch.nn.Module):
         self.conv2 = GCNConv(16, 16)
         self.lin1 = Linear(16,100)
         self.lin2 = Linear(100,num_classes)
+        self.dropout = Dropout(dropout_rate)
 
     def forward(self, data):
         
@@ -49,9 +51,9 @@ class MoleculeNet(torch.nn.Module):
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
-        sum_vector = global_add_pool(x, batch = batch_vec)
         x = F.relu(sum_vector)
         x = F.dropout(x, training=self.training)
+        sum_vector = global_add_pool(x, batch = batch_vec)
         x = self.lin1(x)
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
@@ -64,7 +66,8 @@ def create_model(model_type: str,
                  num_node_features: int,
                  num_classes: int,
                  num_graph_layers: int,
-                 num_linear_layers: int, 
+                 num_linear_layers: int,
+                 dropout_rate: float,
                  device, 
                  pretrain_load_path: str = None) -> MoleculeNet:
     """
@@ -86,7 +89,8 @@ def create_model(model_type: str,
         model = MoleculeNet(num_node_features, 
                             num_classes, 
                             num_graph_layers, 
-                            num_linear_layers).to(device)
+                            num_linear_layers,
+                            dropout_rate).to(device)
         
     # if only BERT model is desired
     if model_type.lower() == 'bert':
@@ -127,7 +131,8 @@ def train_model(data_dir: str,
                 num_linear_layers: int,
                 learning_rate: int,
                 learning_rate_decay: int,
-                weight_decay: int, 
+                weight_decay: int,
+                dropout_rate: float,
                 batch_size: int,
                 log_csv: str,
                 log_file: str = None,
