@@ -1,4 +1,10 @@
-import pandas as pd
+# MolNet
+# Max Bluestone
+
+# Using a graph/NLP model to train and test.
+
+import config
+
 import torch
 from torch.nn import Linear, BCEWithLogitsLoss
 import torch.nn.functional as F
@@ -7,17 +13,19 @@ from torch.optim import lr_scheduler
 from torch_geometric.data import DataLoader
 from torch_geometric.nn import GCNConv, global_add_pool
 from torch_geometric.transforms import AddSelfLoops, ToDense
-from data import MoleculeDataset
+
+import pandas as pd
 import random
 import time
+import csv
 
 from utils_data import *
 
 from os import mkdir
 from os.path import join as path_join
-from os.path import basefolder
+from os.path import dirname
 
-from sklearn.metrics import accuracy_score, recall, precision, f1_score, confusion_matrix
+from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_score, confusion_matrix
 
 
 #### MODEL CLASS #####
@@ -28,7 +36,7 @@ class MoleculeNet(torch.nn.Module):
                  num_graph_layers: int,
                  num_linear_layers: int):
         
-        super(Net, self).__init__()
+        super(MoleculeNet, self).__init__()
         self.num_node_features = num_node_features
         self.conv1 = GCNConv(num_node_features, 16)
         self.conv2 = GCNConv(16, 16)
@@ -57,10 +65,10 @@ class MoleculeNet(torch.nn.Module):
 def create_model(model_type: str,
                  num_node_features: int,
                  num_classes: int,
-                 num_graph_layers=None: int,
+                 num_graph_layers: int,
                  num_linear_layers: int, 
-                 pretrain_load_path=None: str,
-                 device) -> MoleculeNet:
+                 device, 
+                 pretrain_load_path: str = None) -> MoleculeNet:
     """
     Instantiate the model.
     Args:
@@ -123,7 +131,9 @@ def train_model(data_dir: str,
                 learning_rate_decay: int,
                 weight_decay: int, 
                 batch_size: int,
-                pretrain_load_path: str =None):
+                log_csv: str,
+                log_file: str = None,
+                pretrain_load_path: str = None):
     '''
     Function for training model
     
@@ -132,7 +142,7 @@ def train_model(data_dir: str,
     '''    
     
     # load datasets
-    datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x)),
+    datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')),
                                      transform=AddSelfLoops())
                 for x in ['train', 'val']}
     
@@ -141,7 +151,7 @@ def train_model(data_dir: str,
     assert labels == datasets['val'].labels
     
     # get number of features for the nodes
-    num_node_features = len(datasets['train'].x[0])
+    num_node_features = len(datasets['train'][0].x[0])
     
     # create dataloaders
     dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
@@ -153,7 +163,7 @@ def train_model(data_dir: str,
     # use gpu if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
-    print(f"num labels: {classes}\n"
+    print(f"num labels: {len(labels)}\n"
           f"num train molecules {dataset_sizes['train']}\n"
           f"num val molecules {dataset_sizes['val']}\n"
           f"CUDA is_available: {torch.cuda.is_available()}")
@@ -175,15 +185,16 @@ def train_model(data_dir: str,
                                            gamma=learning_rate_decay)
 
     # initialize loss function
-    criterion = BCEWithLogitsLoss(pos_weights=get_pos_weights(labels))
+    criterion = BCEWithLogitsLoss(pos_weight=get_pos_weights(datasets['train'].y))
 
     # create the logging csv
-    if not os.path.exists(basefolder(log_csv)):
-        os.mkdir(basefolder(log_csv))
-    with writer = log_csv.open(mode='w') as writer:
+    if not os.path.exists(dirname(log_csv)):
+        os.mkdir(dirname(log_csv))
+    with open(log_csv,'w') as file:
+        writer = csv.writer(file)
         
         # write header
-        writer.write('epoch,train_loss,train_acc,train_f1,val_loss,val_acc,val_f1\n')
+        writer.writerow(['epoch','train_loss','train_acc','train_f1','val_loss','val_acc','val_f1'])
         
         # train the model
         train_helper(model=model,
@@ -191,23 +202,25 @@ def train_model(data_dir: str,
                      scheduler=scheduler,
                      labels=labels, 
                      num_epochs=num_epochs, 
-                     dataloaders=dataloaders, 
+                     dataloaders=dataloaders,
+                     dataset_sizes=dataset_sizes,
                      criterion=criterion, 
                      log_file=log_file, 
-                     log_csv=log_csv)
-    
-    print('Training is complete!')
+                     log_csv=log_csv,
+                     writer=writer)
     
 
 def train_helper(model: torch.nn.Module,
                  optimizer,
+                 scheduler,
                  labels: list, 
                  num_epochs: int, 
                  dataloaders: dict,
                  dataset_sizes: dict,
                  criterion: torch.nn.modules.loss, 
                  log_file: str, 
-                 log_csv: str):
+                 log_csv: str,
+                 writer):
     '''
     Helper function for training model
     
@@ -236,6 +249,9 @@ def train_helper(model: torch.nn.Module,
         # initialize running loss and accuracy for the epoch
         train_running_loss = 0.0
         train_running_accuracy = 0.0
+        train_running_precision = 0.0
+        train_running_recall = 0.0
+        train_running_f1 = 0.0
 
         # loop through batched training data
         for inputs in dataloaders['train']:
@@ -261,10 +277,10 @@ def train_helper(model: torch.nn.Module,
                 optimizer.step()
                 
                 # calculate performance metrics
-                train_acc = accuracy_score(train_batch_labels,train_batch_predictions)
-                train_precision = precision(train_batch_labels,train_batch_predictions)
-                train_recall = recall(train_batch_labels,train_batch_predictions)
-                train_f1 = f1_score(train_batch_labels,train_batch_predictions)
+                train_acc = 1-hamming_loss(train_batch_labels,train_batch_predictions)
+                train_precision = precision_score(train_batch_labels,train_batch_predictions,average='micro')
+                train_recall = recall_score(train_batch_labels,train_batch_predictions,average='micro')
+                train_f1 = f1_score(train_batch_labels,train_batch_predictions,average='micro')
                 
             # update running metrics
             train_running_loss += train_loss.item() * inputs.y.size(0)
@@ -274,11 +290,16 @@ def train_helper(model: torch.nn.Module,
             train_running_f1 += train_f1 * inputs.y.size(0)
 
         # calculate training metrics for the epoch
-        epoch_train_loss = train_running_loss/dataset_sizes['train']
-        epoch_train_acc = train_running_accuracy/dataset_sizes['train']
-        epoch_train_acc = train_running_precision/dataset_sizes['train']
-        epoch_train_acc = train_running_recall/dataset_sizes['train']
-        epoch_train_f1 = train_running_f1/dataset_sizes['train']
+        epoch_train_loss = np.round(train_running_loss/dataset_sizes['train'],
+                                  decimals=4)
+        epoch_train_acc = np.round(train_running_accuracy/dataset_sizes['train'],
+                                  decimals=4)
+        epoch_train_precision = np.round(train_running_precision/dataset_sizes['train'],
+                                  decimals=4)
+        epoch_train_recall = np.round(train_running_recall/dataset_sizes['train'],
+                                  decimals=4)
+        epoch_train_f1 = np.round(train_running_f1/dataset_sizes['train'],
+                                  decimals=4)
 
         print(f'Training: Loss = {epoch_train_loss}, ' 
               f'Accuracy = {epoch_train_acc}, '
@@ -292,6 +313,9 @@ def train_helper(model: torch.nn.Module,
         # initialize running loss and accuracy for the epoch
         val_running_loss = 0.0
         val_running_accuracy = 0.0
+        val_running_precision = 0.0
+        val_running_recall = 0.0
+        val_running_f1 = 0.0
 
         # loop through batched validation data
         for inputs in dataloaders['val']:
@@ -309,10 +333,10 @@ def train_helper(model: torch.nn.Module,
                 val_loss = criterion(out, inputs.y)
                 
                 # calculate performance metrics
-                val_acc = (val_batch_labels,val_batch_predictions)
-                val_precision = precision(val_batch_labels,val_batch_predictions)
-                val_recall = recall(val_batch_labels,val_batch_predictions)
-                val_f1 = f1_score(val_batch_labels,val_batch_predictions)
+                val_acc = 1-hamming_loss(val_batch_labels,val_batch_predictions)
+                val_precision = precision_score(val_batch_labels,val_batch_predictions,average='micro')
+                val_recall = recall_score(val_batch_labels,val_batch_predictions,average='micro')
+                val_f1 = f1_score(val_batch_labels,val_batch_predictions,average='micro')
 
             # update running metrics
             val_running_loss += val_loss.item() * inputs.y.size(0)
@@ -322,11 +346,16 @@ def train_helper(model: torch.nn.Module,
             val_running_f1 += val_f1 * inputs.y.size(0)
 
         # calculate validation metrics for the epoch
-        epoch_val_loss = val_running_loss/dataset_sizes['val']
-        epoch_val_acc = val_running_accuracy/dataset_sizes['val']
-        epoch_val_precision = val_running_precision/dataset_sizes['val']
-        epoch_val_recall = val_running_recall/dataset_sizes['val']
-        epoch_val_f1 = val_running_f1/dataset_sizes['val']
+        epoch_val_loss = np.round(val_running_loss/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_acc = np.round(val_running_accuracy/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_precision = np.round(val_running_precision/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_recall = np.round(val_running_recall/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_f1 = np.round(val_running_f1/dataset_sizes['val'],
+                                  decimals=4)
         
         # empty cuda cache
         if torch.cuda.is_available():
@@ -342,12 +371,12 @@ def train_helper(model: torch.nn.Module,
               f'F1 = {epoch_val_f1}')    
         
         # log metrics in log csv
-        writer.write('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
+        writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
             str(epoch), epoch_train_loss, epoch_train_acc, epoch_train_f1,
-            epoch_val_loss, epoch_val_acc, epoch_val_f1))
+            epoch_val_loss, epoch_val_acc, epoch_val_f1).split(','))
 
-    writer.close()
+    #writer.close()
     
     # Print training information at the end.
-    print(f"\ntTraining complete in "
+    print(f"\nTraining complete in "
           f"{(time.time() - start) // 60:.2f} minutes")

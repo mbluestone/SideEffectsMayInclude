@@ -72,11 +72,11 @@ def split_data(X, y, test_split = 0.2, val_split = 0.1, save_path = None):
     if save_path:
     
         # save train data
-        pd.concat([X_train,y_train],axis=1).to_csv(save_path+'train_data.csv')
+        pd.concat([X_train,y_train],axis=1).to_csv(save_path+'train.csv',index=False)
         # save val data
-        pd.concat([X_val,y_val],axis=1).to_csv(save_path+'val_data.csv')
+        pd.concat([X_val,y_val],axis=1).to_csv(save_path+'val.csv',index=False)
         # save test data
-        pd.concat([X_test,y_test],axis=1).to_csv(save_path+'test_data.csv')
+        pd.concat([X_test,y_test],axis=1).to_csv(save_path+'test.csv',index=False)
      
     # just return the split data and don't save
     else:
@@ -149,7 +149,7 @@ class Molecule(Data):
         graph connectivity in COO format
         '''
         adjacency_matrix = nx.to_numpy_matrix(self.graph, weight='order')
-        #print(adjacency_matrix)
+
         edge_index = np.array([])
         for i in range(len(self.graph.nodes)):
             for j in range(len(self.graph.nodes)):
@@ -179,6 +179,7 @@ class MoleculeDataset():
         self.transform = transform
         if isinstance(self.y, pd.DataFrame):
             self.labels = self.y.columns.tolist()
+            self.y = np.matrix(self.y)
 
     def __len__(self):
         return self.X.shape[0]
@@ -187,8 +188,8 @@ class MoleculeDataset():
         if torch.is_tensor(idx):
             idx = idx.tolist()
             
-        molecule = Molecule(self.X.iloc[idx,0],
-                           self.y.loc[idx,:].tolist())
+        molecule = Molecule(self.X[idx],
+                           self.y[idx].tolist())
 
         if self.transform:
             molecule = self.transform(molecule)
@@ -205,8 +206,8 @@ class MoleculeDataset():
         if torch.is_tensor(idx):
             idx = idx.tolist()
             
-        molecule = Molecule(self.X.iloc[idx,0],
-                           self.y.loc[idx,:].tolist())
+        molecule = Molecule(self.X[idx],
+                           self.y[idx].tolist())
 
         if self.transform:
             molecule = self.transform(molecule)
