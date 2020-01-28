@@ -59,6 +59,8 @@ class MoleculeNet(torch.nn.Module):
         #print('Post act and drop:',x.size())
         sum_vector = global_add_pool(x, batch = batch_vec)
         #print('Post sum:',sum_vector.size())
+        x = F.relu(sum_vector)
+        x = F.dropout(x, training=self.training)
         x = self.lin1(sum_vector)
         #print('Post lin1:',x.size())
         x = F.relu(x)
@@ -410,7 +412,7 @@ def train_helper(model: torch.nn.Module,
               f'Precision = {epoch_val_precision}, '
               f'Recall = {epoch_val_recall}, '
               f'F1 = {epoch_val_f1}, '
-              f'ROC_AUC = {epoch_val_roc_auc}, ')    
+              f'ROC_AUC = {epoch_val_roc_auc}')    
         
         # log metrics in log csv
         writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
