@@ -268,7 +268,7 @@ def train_helper(model: torch.nn.Module,
                 
                 # make predicitions
                 out = model(inputs)
-                train_batch_predictions = (torch.sigmoid(out)>0.5).numpy()
+                train_batch_predictions = (torch.sigmoid(out)>0.5).cpu().numpy()
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
@@ -333,7 +333,7 @@ def train_helper(model: torch.nn.Module,
                 
                 # make predicitions
                 out = model(inputs)
-                val_batch_predictions = (torch.sigmoid(out)>0.5).numpy()
+                val_batch_predictions = (torch.sigmoid(out)>0.5).cpu().numpy()
                 
                 # calculate loss
                 val_loss = criterion(out, inputs.y)
