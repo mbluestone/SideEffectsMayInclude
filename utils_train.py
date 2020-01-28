@@ -54,7 +54,7 @@ class MoleculeNet(torch.nn.Module):
         print('Post act and drop:',x.size())
         x = self.conv2(x, edge_index)
         print('Post conv2:',x.size())
-        x = F.relu(sum_vector)
+        x = F.relu(x)
         x = F.dropout(x, training=self.training)
         print('Post act and drop:',x.size())
         sum_vector = global_add_pool(x, batch = batch_vec)
