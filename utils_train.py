@@ -289,8 +289,8 @@ def train_helper(model: torch.nn.Module,
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
                 
-                train_bath_probs = torch.sigmoid(out).cpu().numpy()
-                train_batch_predictions = (torch.sigmoid(out)>0.5).cpu().numpy()
+                train_bath_probs = torch.sigmoid(out).detach().cpu().numpy()
+                train_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
                 
                 # backpropagate
                 train_loss.backward()
@@ -365,8 +365,8 @@ def train_helper(model: torch.nn.Module,
                 # calculate loss
                 val_loss = criterion(out, inputs.y)
                 
-                val_bath_probs = torch.sigmoid(out).cpu().numpy()
-                val_batch_predictions = (torch.sigmoid(out)>0.5).cpu().numpy()
+                val_bath_probs = torch.sigmoid(out).detach().cpu().numpy()
+                val_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
                 
                 # calculate performance metrics
                 val_acc = 1-hamming_loss(val_batch_labels,val_batch_predictions)
