@@ -272,6 +272,7 @@ def train_helper(model: torch.nn.Module,
                 # make predicitions
                 out = model(inputs)
                 print(out.device)
+                print(inpputs.y.device)
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
