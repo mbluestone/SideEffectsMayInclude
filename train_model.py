@@ -1,4 +1,5 @@
 import config
+from utils_train import train_model
 
 train_model(data_dir=config.data_dir,
             model_type=config.model_type,
