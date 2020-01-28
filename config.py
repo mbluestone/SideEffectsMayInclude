@@ -1,4 +1,4 @@
-data_dir='~/github/MolNet/processed_data/sider/'
+data_dir='processed_data/sider/'
 
 # model creation parameters
 model_type='graph'
@@ -15,4 +15,4 @@ batch_size=30
 
 # logging
 log_file=None
-log_csv = '/Users/mbluestone/github/MolNet/logs/test_log.csv',
+log_csv = 'logs/test_log.csv'
