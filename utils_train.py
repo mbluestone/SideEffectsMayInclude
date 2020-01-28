@@ -260,7 +260,6 @@ def train_helper(model: torch.nn.Module,
             train_batch_labels = inputs.y.numpy()
             
             # send to device
-            train_batch_labels = train_batch_labels.to(device)
             inputs = inputs.to(device)
 
             # 
@@ -328,7 +327,6 @@ def train_helper(model: torch.nn.Module,
             val_batch_labels = inputs.y.numpy()
             
             # send to device
-            val_batch_labels = val_batch_labels.to(device)
             inputs = inputs.to(device)
 
             with torch.set_grad_enabled(mode=False):
