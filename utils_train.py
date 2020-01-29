@@ -376,7 +376,12 @@ def train_helper(model: torch.nn.Module,
               f'Precision = {epoch_train_precision}, '
               f'Recall = {epoch_train_recall}, '
               f'F1 = {epoch_train_f1}, '
-              f'ROC_AUC = {epoch_train_roc_auc}')   
+              f'ROC_AUC = {epoch_train_roc_auc}') 
+        
+        # print confusion matrices
+        for i,label in enumerate(labels):
+            print('\n',label,':\n')
+            print(confusion_matrix(train_batch_labels[:,i],train_batch_predictions[:,i]))
 
         # Validation
         model.eval()
