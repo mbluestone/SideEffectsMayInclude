@@ -350,7 +350,7 @@ def train_helper(model: torch.nn.Module,
                 train_f1 = f1_score(train_batch_labels,train_batch_predictions,
                                     average='micro',zero_division=0)
                 train_roc_auc = roc_auc_score(train_batch_labels,train_batch_probs,
-                                              average='micro',zero_division=0)
+                                              average='micro')
                 
             # update running metrics
             train_running_loss += train_loss.item() * inputs.y.size(0)
@@ -424,7 +424,7 @@ def train_helper(model: torch.nn.Module,
                 val_f1 = f1_score(val_batch_labels,val_batch_predictions,
                                   average='micro',zero_division=0)
                 val_roc_auc = roc_auc_score(val_batch_labels,val_batch_probs,
-                                            average='micro',zero_division=0)
+                                            average='micro')
 
             # update running metrics
             val_running_loss += val_loss.item() * inputs.y.size(0)
