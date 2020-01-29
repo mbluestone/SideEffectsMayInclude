@@ -334,6 +334,7 @@ def train_helper(model: torch.nn.Module,
                 train_loss = criterion(out, inputs.y)
                 
                 train_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
+                train_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
                 
                 # backpropagate
                 train_loss.backward()
