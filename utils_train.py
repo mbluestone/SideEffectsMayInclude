@@ -309,7 +309,7 @@ def train_helper(model: torch.nn.Module,
         train_running_roc_auc = 0.0
         
         all_train_labels = np.array([])
-        all_train_preds = np.array([])
+        all_train_predictions = np.array([])
 
         # loop through batched training data
         for inputs in dataloaders['train']:
@@ -363,10 +363,10 @@ def train_helper(model: torch.nn.Module,
             
             if all_train_labels.size == 0:
                 all_train_labels = train_batch_labels
-                all_train_preds = train_batch_predictions
+                all_train_predictions = train_batch_predictions
             else:
                 all_train_labels = np.vstack((all_train_labels,train_batch_labels))
-                all_train_preds = np.vstack((all_train_preds,train_batch_predictions))
+                all_train_predictions = np.vstack((all_train_predictions,train_batch_predictions))
 
         # calculate training metrics for the epoch
         epoch_train_loss = np.round(train_running_loss/dataset_sizes['train'],
@@ -393,7 +393,7 @@ def train_helper(model: torch.nn.Module,
         if print_cms:
             for i,label in enumerate(labels):
                 print('\n',label,':\n')
-                print(confusion_matrix(all_train_labels[:,i],all_batch_predictions[:,i]))
+                print(confusion_matrix(all_train_labels[:,i],all_train_predictions[:,i]))
 
         # Validation
         model.eval()
