@@ -151,7 +151,7 @@ class Molecule(Data):
         adjacency_matrix = nx.to_numpy_matrix(self.graph, weight='order')
 
         edge_index = np.array([])
-        for i,j in permuations(range(len(self.graph.nodes)),2):
+        for i,j in permutations(range(len(self.graph.nodes)),2):
             if adjacency_matrix[i,j] != 0:
                 if edge_index.size == 0:
                     edge_index = np.array([i,j])
