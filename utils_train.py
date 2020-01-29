@@ -308,8 +308,8 @@ def train_helper(model: torch.nn.Module,
         train_running_f1 = 0.0
         train_running_roc_auc = 0.0
         
-        all_train_labels = []
-        all_train_preds = []
+        all_train_labels = np.array([])
+        all_train_preds = np.array([])
 
         # loop through batched training data
         for inputs in dataloaders['train']:
