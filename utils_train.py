@@ -99,7 +99,7 @@ class GoogleMoleculeNet(torch.nn.Module):
         x = self.conv4(x, edge_index)
         x = F.selu(x)
         sum_vector = global_add_pool(x, batch = batch_vec)
-        print('Post sum:',sum_vector.size())
+        #print('Post sum:',sum_vector.size())
         x = self.softmax(sum_vector)
         x = self.lin1(sum_vector)
         x = F.relu(x)
