@@ -60,7 +60,7 @@ class MoleculeNet(torch.nn.Module):
         #print('Post sum:',sum_vector.size())
         x = F.relu(sum_vector)
         x = F.dropout(x, training=self.training)
-        x = self.lin1(sum_vector)
+        x = self.lin1(x)
         #print('Post lin1:',x.size())
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
