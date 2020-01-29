@@ -47,21 +47,15 @@ class MoleculeNet(torch.nn.Module):
         x, edge_index, batch_vec = data.x, data.edge_index, data.batch
 
         x = self.conv1(x, edge_index)
-        #print('Post conv1:',x.size())
         x = F.selu(x)
         x = F.dropout(x, training=self.training)
-        #print('Post act and drop:',x.size())
         x = self.conv2(x, edge_index)
-        #print('Post conv2:',x.size())
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
-        #print('Post act and drop:',x.size())
         sum_vector = global_add_pool(x, batch = batch_vec)
-        #print('Post sum:',sum_vector.size())
         x = F.relu(sum_vector)
         x = F.dropout(x, training=self.training)
         x = self.lin1(x)
-        #print('Post lin1:',x.size())
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
         x = self.lin2(x)
@@ -464,7 +458,11 @@ def train_helper(model: torch.nn.Module,
               f'Precision = {epoch_val_precision}, '
               f'Recall = {epoch_val_recall}, '
               f'F1 = {epoch_val_f1}, '
-              f'ROC_AUC = {epoch_val_roc_auc}\n')    
+              f'ROC_AUC = {epoch_val_roc_auc}\n') 
+        
+        # print confusion matrices
+        for i,label in enumerate(labels):
+            print(confusion_matrix(val_batch_labels[:,i],val_batch_predictions[:,i]))
         
         # log metrics in log csv
         writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
