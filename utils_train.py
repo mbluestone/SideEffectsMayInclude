@@ -76,7 +76,7 @@ class GoogleMoleculeNet(torch.nn.Module):
                  num_linear_layers: int,
                  dropout_rate: float):
         
-        super(MoleculeNet, self).__init__()
+        super(GoogleMoleculeNet, self).__init__()
         self.conv1 = GCNConv(num_node_features, 15, {'aggr':'max'})
         self.conv2 = GCNConv(15, 20, {'aggr':'max'})
         self.conv3 = GCNConv(20, 27, {'aggr':'max'})
