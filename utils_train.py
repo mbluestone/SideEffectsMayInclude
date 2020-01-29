@@ -3,14 +3,19 @@
 
 # Using a graph/NLP model to train and test.
 
+import config
+
 import torch
 from torch.nn import Linear, Dropout, BCEWithLogitsLoss, Softmax
 import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim import lr_scheduler
+
 from torch_geometric.data import DataLoader
 from torch_geometric.nn import GCNConv, global_add_pool
 #from torch_geometric.transforms import AddSelfLoops, ToDense
+
+from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
 import pandas as pd
 import random
@@ -107,6 +112,29 @@ class GoogleMoleculeNet(torch.nn.Module):
         x = F.dropout(x, training=self.training)
 
         return x
+    
+class LSTMBaseline(nn.Module):
+    def __init__(self, num_classes, hidden_dim, emb_dim=300, num_linear=1):
+        super().__init__() 
+        self.embedding = nn.Embedding(len(TEXT.vocab), emb_dim)
+        self.encoder = nn.LSTM(emb_dim, 
+                               hidden_dim, 
+                               num_layers=1, 
+                               bidirectional=True)
+        self.linear_layers = []
+        for _ in range(num_linear - 1):
+            self.linear_layers.append(nn.Linear(hidden_dim, hidden_dim))
+            self.linear_layers = nn.ModuleList(self.linear_layers)
+        self.predictor = nn.Linear(hidden_dim, num_classes)
+
+    def forward(self, data):
+        x = data.x
+        hdn, _ = self.encoder(self.embedding(x))
+        feature = hdn[-1, :, :]
+        for layer in self.linear_layers:
+            feature = layer(feature)
+        preds = self.predictor(feature)
+        return preds
 
 
 def create_model(model_type: str,
@@ -140,11 +168,14 @@ def create_model(model_type: str,
                             dropout_rate).to(device)
         
     # if only BERT model is desired
-    if model_type.lower() == 'bert':
-        model = MoleculeNet(num_node_features, 
-                            num_classes, 
-                            num_graph_layers, 
-                            num_linear_layers).to(device)
+    if model_type.lower() == 'nlp':
+        em_sz = 100
+        nh = 500
+        nl = 2
+        model = LSTMBaseline(num_classes, 
+                             nh, 
+                             em_sz, 
+                             nl).to(device)
         
     # if combo model is desired
     if model_type.lower() == 'combo':
@@ -171,6 +202,79 @@ def get_pos_weights(labels):
                for i in range(labels.shape[1])]
     return torch.tensor(weights)
 
+def load_data_for_model_training(data_dir: str, 
+                                 model_type: str):
+    
+    # get positive weights and labels
+    train_labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
+    labels = train_labels_df.columns.tolist()
+    pos_weight = get_pos_weights(np.matrix(train_labels_df))
+    
+    # if graph model
+    if model_type in ['graph']:
+        
+        # load datasets
+        datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')))
+                    for x in ['train', 'val']}
+
+        # get labels and make sure train and val data have the same
+        labels = datasets['train'].labels
+        assert labels == datasets['val'].labels
+
+        # get number of features for the nodes
+        num_node_features = len(datasets['train'][0].x[0])
+
+        # create dataloaders
+        dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
+                       for x in ['train', 'val']}
+
+        # get the size of each dataset
+        dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
+        
+    # if nlp model
+    elif model_type in ['nlp','bert']:
+        
+        tokenize = lambda x: list(x)
+        TEXT = Field(sequential=True, tokenize=tokenize, lower=True)
+        LABEL = Field(sequential=False, use_vocab=False)
+
+        tv_datafields = [("smiles", TEXT)]
+        tv_datafields.extend([(label, LABEL) for label in labels])
+
+        train, val = TabularDataset.splits(path=data_dir,
+                                         train='train.csv', 
+                                         validation="val.csv", 
+                                         format='csv', 
+                                         skip_header=True, 
+                                         fields=tv_datafields)
+
+        TEXT.build_vocab(trn)
+
+
+        dataset_sizes = dict()
+        dataset_sizes['train'] = len(train)
+        dataset_sizes['val'] = len(val)
+
+        train_iter, val_iter = BucketIterator.splits((train, val), 
+                                                     batch_sizes=(30, 30),
+                                                     device=device,
+                                                     sort_key=lambda x: len(x.smiles),
+                                                     sort_within_batch=False,
+                                                     repeat=False)
+
+
+
+        dataloaders=dict()
+        dataloaders['train'] = TextBatchWrapper(train_iter, "smiles", 
+                                                labels)
+        dataloaders['val'] = TextBatchWrapper(val_iter, "smiles", 
+                                              labels)
+        
+        # get number of features for the nodes
+        num_node_features = 0
+        
+    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features
+
 def train_model(data_dir: str,
                 model_type: str,
                 num_epochs: int,
@@ -191,23 +295,8 @@ def train_model(data_dir: str,
         num_epochs
     '''    
     
-    # load datasets
-    datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')))
-                for x in ['train', 'val']}
-    
-    # get labels and make sure train and val data have the same
-    labels = datasets['train'].labels
-    assert labels == datasets['val'].labels
-    
-    # get number of features for the nodes
-    num_node_features = len(datasets['train'][0].x[0])
-    
-    # create dataloaders
-    dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
-                   for x in ['train', 'val']}
-    
-    # get the size of each dataset
-    dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
+    # load data objects
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features = load_data_for_model_training(data_dir,model_type)
     
     # use gpu if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -235,7 +324,7 @@ def train_model(data_dir: str,
                                            gamma=learning_rate_decay)
 
     # initialize loss function
-    criterion = BCEWithLogitsLoss(pos_weight=get_pos_weights(datasets['train'].y))
+    criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
     criterion = criterion.to(device)
 
     # create the logging csv
@@ -320,8 +409,9 @@ def train_helper(model: torch.nn.Module,
             # send to device
             inputs.y = inputs.y.to(device)
             inputs.x = inputs.x.to(device)
-            inputs.edge_index = inputs.edge_index.to(device)
-            inputs.batch = inputs.batch.to(device)
+            if 'edge_index' in dir(inputs):
+                inputs.edge_index = inputs.edge_index.to(device)
+                inputs.batch = inputs.batch.to(device)
 
             # 
             optimizer.zero_grad()
@@ -418,8 +508,9 @@ def train_helper(model: torch.nn.Module,
             # send to device
             inputs.y = inputs.y.to(device)
             inputs.x = inputs.x.to(device)
-            inputs.edge_index = inputs.edge_index.to(device)
-            inputs.batch = inputs.batch.to(device)
+            if 'edge_index' in dir(inputs):
+                inputs.edge_index = inputs.edge_index.to(device)
+                inputs.batch = inputs.batch.to(device)
 
             with torch.set_grad_enabled(mode=False):
                 
@@ -503,3 +594,5 @@ def train_helper(model: torch.nn.Module,
     # Print training information at the end.
     print(f"\nTraining complete in "
           f"{(time.time() - start) // 60:.2f} minutes")
+    
+  
