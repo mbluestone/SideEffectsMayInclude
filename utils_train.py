@@ -10,7 +10,7 @@ from torch.optim import Adam
 from torch.optim import lr_scheduler
 from torch_geometric.data import DataLoader
 from torch_geometric.nn import GCNConv, global_add_pool
-from torch_geometric.transforms import AddSelfLoops, ToDense
+#from torch_geometric.transforms import AddSelfLoops, ToDense
 
 import pandas as pd
 import random
@@ -198,8 +198,7 @@ def train_model(data_dir: str,
     '''    
     
     # load datasets
-    datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')),
-                                     transform=AddSelfLoops())
+    datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')))
                 for x in ['train', 'val']}
     
     # get labels and make sure train and val data have the same

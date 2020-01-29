@@ -9,7 +9,6 @@ import os
 from skmultilearn.model_selection import iterative_train_test_split
 
 from torch_geometric.data import Data, Dataset, DataLoader
-from torch_geometric.transforms import AddSelfLoops
 
 def load_raw_data(path):
     '''
