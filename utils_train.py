@@ -405,6 +405,9 @@ def train_helper(model: torch.nn.Module,
         val_running_recall = 0.0
         val_running_f1 = 0.0
         val_running_roc_auc = 0.0
+        
+        all_val_labels = np.array([])
+        all_val_predictions = np.array([])
 
         # loop through batched validation data
         for inputs in dataloaders['val']:
@@ -447,6 +450,13 @@ def train_helper(model: torch.nn.Module,
             val_running_recall += val_recall * inputs.y.size(0)
             val_running_f1 += val_f1 * inputs.y.size(0)
             val_running_roc_auc += val_roc_auc * inputs.y.size(0)
+            
+            if all_val_labels.size == 0:
+                all_val_labels = train_val_labels
+                all_val_predictions = val_batch_predictions
+            else:
+                all_val_labels = np.vstack((all_val_labels,val_batch_labels))
+                all_val_predictions = np.vstack((all_val_predictions,val_batch_predictions))
 
         # calculate validation metrics for the epoch
         epoch_val_loss = np.round(val_running_loss/dataset_sizes['val'],
@@ -481,7 +491,7 @@ def train_helper(model: torch.nn.Module,
         if print_cms:
             for i,label in enumerate(labels):
                 print('\n',label,':\n')
-                print(confusion_matrix(val_batch_labels[:,i],val_batch_predictions[:,i]))
+                print(confusion_matrix(all_val_labels[:,i],all_val_predictions[:,i]))
         
         # log metrics in log csv
         writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
