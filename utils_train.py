@@ -288,6 +288,7 @@ def train_helper(model: torch.nn.Module,
         log_csv: str
     '''
 
+    print_cms = True
     # start tracking time
     start = time.time()
     
@@ -306,6 +307,9 @@ def train_helper(model: torch.nn.Module,
         train_running_recall = 0.0
         train_running_f1 = 0.0
         train_running_roc_auc = 0.0
+        
+        all_train_labels = []
+        all_train_preds = []
 
         # loop through batched training data
         for inputs in dataloaders['train']:
@@ -331,6 +335,8 @@ def train_helper(model: torch.nn.Module,
                 
                 train_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
                 train_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
+                print(train_batch_labels)
+                print()
                 
                 # backpropagate
                 train_loss.backward()
@@ -356,6 +362,9 @@ def train_helper(model: torch.nn.Module,
             train_running_recall += train_recall * inputs.y.size(0)
             train_running_f1 += train_f1 * inputs.y.size(0)
             train_running_roc_auc += train_roc_auc * inputs.y.size(0)
+            
+            all_train_labels.append(train_batch_labels)
+            all_train_preds.append(train_batch_predictions)
 
         # calculate training metrics for the epoch
         epoch_train_loss = np.round(train_running_loss/dataset_sizes['train'],
@@ -379,9 +388,10 @@ def train_helper(model: torch.nn.Module,
               f'ROC_AUC = {epoch_train_roc_auc}') 
         
         # print confusion matrices
-        for i,label in enumerate(labels):
-            print('\n',label,':\n')
-            print(confusion_matrix(train_batch_labels[:,i],train_batch_predictions[:,i]))
+        if print_cms:
+            for i,label in enumerate(labels):
+                print('\n',label,':\n')
+                print(confusion_matrix(all_train_labels[:,i],all_batch_predictions[:,i]))
 
         # Validation
         model.eval()
@@ -466,9 +476,10 @@ def train_helper(model: torch.nn.Module,
               f'ROC_AUC = {epoch_val_roc_auc}\n') 
         
         # print confusion matrices
-        for i,label in enumerate(labels):
-            print('\n',label,':\n')
-            print(confusion_matrix(val_batch_labels[:,i],val_batch_predictions[:,i]))
+        if print_cms:
+            for i,label in enumerate(labels):
+                print('\n',label,':\n')
+                print(confusion_matrix(val_batch_labels[:,i],val_batch_predictions[:,i]))
         
         # log metrics in log csv
         writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
