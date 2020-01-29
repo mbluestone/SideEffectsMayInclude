@@ -462,7 +462,7 @@ def train_helper(model: torch.nn.Module,
         
         # print confusion matrices
         for i,label in enumerate(labels):
-            print('/n',label,':\n')
+            print('\n',label,':\n')
             print(confusion_matrix(val_batch_labels[:,i],val_batch_predictions[:,i]))
         
         # log metrics in log csv
