@@ -452,8 +452,8 @@ def train_helper(model: torch.nn.Module,
             val_running_roc_auc += val_roc_auc * inputs.y.size(0)
             
             if all_val_labels.size == 0:
-                all_val_labels = all_val_labels
-                all_val_predictions = all_val_predictions
+                all_val_labels = val_batch_labels
+                all_val_predictions = val_batch_predictions
             else:
                 all_val_labels = np.vstack((all_val_labels,val_batch_labels))
                 all_val_predictions = np.vstack((all_val_predictions,val_batch_predictions))
