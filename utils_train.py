@@ -84,7 +84,7 @@ class GoogleMoleculeNet(torch.nn.Module):
         self.lin1 = Linear(36,96)
         self.lin2 = Linear(96,num_classes)
         self.dropout = Dropout(dropout_rate)
-        self.softmax = Softmax()
+        self.softmax = Softmax(dim=1)
 
     def forward(self, data):
         
