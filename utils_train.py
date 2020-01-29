@@ -334,9 +334,6 @@ def train_helper(model: torch.nn.Module,
                 train_loss = criterion(out, inputs.y)
                 
                 train_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
-                train_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
-                print(train_batch_labels)
-                print()
                 
                 # backpropagate
                 train_loss.backward()
@@ -363,8 +360,12 @@ def train_helper(model: torch.nn.Module,
             train_running_f1 += train_f1 * inputs.y.size(0)
             train_running_roc_auc += train_roc_auc * inputs.y.size(0)
             
-            all_train_labels.append(train_batch_labels)
-            all_train_preds.append(train_batch_predictions)
+            if all_train_labels.size == 0:
+                all_train_labels = train_batch_labels
+                all_train_preds = train_batch_predictions
+            else:
+                all_train_labels = np.vstack((all_train_labels,train_batch_labels))
+                all_train_preds = np.vstack((all_train_preds,train_batch_predictions))
 
         # calculate training metrics for the epoch
         epoch_train_loss = np.round(train_running_loss/dataset_sizes['train'],
