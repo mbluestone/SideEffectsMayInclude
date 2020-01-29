@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 import sys
 import os
+from itertools import permutations
 
 from skmultilearn.model_selection import iterative_train_test_split
 
@@ -150,13 +151,12 @@ class Molecule(Data):
         adjacency_matrix = nx.to_numpy_matrix(self.graph, weight='order')
 
         edge_index = np.array([])
-        for i in range(len(self.graph.nodes)):
-            for j in range(len(self.graph.nodes)):
-                if adjacency_matrix[i,j] != 0:
-                    if edge_index.size == 0:
-                        edge_index = np.array([i,j])
-                    else:
-                        edge_index = np.vstack((edge_index, np.array([i,j])))
+        for i,j in permuations(range(len(self.graph.nodes)),2):
+            if adjacency_matrix[i,j] != 0:
+                if edge_index.size == 0:
+                    edge_index = np.array([i,j])
+                else:
+                    edge_index = np.vstack((edge_index, np.array([i,j])))
                         
         return edge_index.T
                     
