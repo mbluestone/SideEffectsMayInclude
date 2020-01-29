@@ -4,7 +4,7 @@
 # Using a graph/NLP model to train and test.
 
 import torch
-from torch.nn import Linear, Dropout, BCEWithLogitsLoss
+from torch.nn import Linear, Dropout, BCEWithLogitsLoss, Softmax
 import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim import lr_scheduler
@@ -36,7 +36,6 @@ class MoleculeNet(torch.nn.Module):
                  dropout_rate: float):
         
         super(MoleculeNet, self).__init__()
-        self.num_node_features = num_node_features
         self.conv1 = GCNConv(num_node_features, 16)
         self.conv2 = GCNConv(16, 16)
         self.lin1 = Linear(16,100)
@@ -49,7 +48,7 @@ class MoleculeNet(torch.nn.Module):
 
         x = self.conv1(x, edge_index)
         #print('Post conv1:',x.size())
-        x = F.relu(x)
+        x = F.selu(x)
         x = F.dropout(x, training=self.training)
         #print('Post act and drop:',x.size())
         x = self.conv2(x, edge_index)
@@ -66,6 +65,48 @@ class MoleculeNet(torch.nn.Module):
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
         x = self.lin2(x)
+
+        return x
+    
+class GoogleMoleculeNet(torch.nn.Module):
+    def __init__(self, 
+                 num_node_features: int, 
+                 num_classes: int, 
+                 num_graph_layers: int,
+                 num_linear_layers: int,
+                 dropout_rate: float):
+        
+        super(MoleculeNet, self).__init__()
+        self.conv1 = GCNConv(num_node_features, 15, {'aggr':'max'})
+        self.conv2 = GCNConv(15, 20, {'aggr':'max'})
+        self.conv3 = GCNConv(20, 27, {'aggr':'max'})
+        self.conv4 = GCNConv(27, 36, {'aggr':'max'})
+        self.lin1 = Linear(36,96)
+        self.lin2 = Linear(96,num_classes)
+        self.dropout = Dropout(dropout_rate)
+        self.softmax = Softmax()
+
+    def forward(self, data):
+        
+        x, edge_index, batch_vec = data.x, data.edge_index, data.batch
+
+        x = self.conv1(x, edge_index)
+        x = F.selu(x)
+        x = self.conv2(x, edge_index)
+        x = F.selu(x)
+        x = self.conv3(x, edge_index)
+        x = F.selu(x)
+        x = self.conv4(x, edge_index)
+        x = F.selu(x)
+        sum_vector = global_add_pool(x, batch = batch_vec)
+        print('Post sum:',sum_vector.size())
+        x = self.softmax(sum_vector)
+        x = self.lin1(sum_vector)
+        x = F.relu(x)
+        x = F.dropout(x, training=self.training)
+        x = self.lin2(x)
+        x = F.relu(x)
+        x = F.dropout(x, training=self.training)
 
         return x
 
@@ -94,7 +135,7 @@ def create_model(model_type: str,
     
     # if only graph model is desired
     if model_type.lower() == 'graph':
-        model = MoleculeNet(num_node_features, 
+        model = GoogleMoleculeNet(num_node_features, 
                             num_classes, 
                             num_graph_layers, 
                             num_linear_layers,
@@ -412,7 +453,7 @@ def train_helper(model: torch.nn.Module,
               f'Precision = {epoch_val_precision}, '
               f'Recall = {epoch_val_recall}, '
               f'F1 = {epoch_val_f1}, '
-              f'ROC_AUC = {epoch_val_roc_auc}')    
+              f'ROC_AUC = {epoch_val_roc_auc}\n')    
         
         # log metrics in log csv
         writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
