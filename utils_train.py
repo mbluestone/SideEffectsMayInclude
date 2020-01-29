@@ -139,7 +139,7 @@ def create_model(model_type: str,
     
     # if only graph model is desired
     if model_type.lower() == 'graph':
-        model = GoogleMoleculeNet(num_node_features, 
+        model = MoleculeNet(num_node_features, 
                             num_classes, 
                             num_graph_layers, 
                             num_linear_layers,
