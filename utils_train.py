@@ -102,7 +102,7 @@ class GoogleMoleculeNet(torch.nn.Module):
         sum_vec2 = global_add_pool(c2, batch = batch_vec)
         sum_vec3 = global_add_pool(c3, batch = batch_vec)
         sum_vec4 = global_add_pool(c4, batch = batch_vec)
-        full_vector = torch.sum(torch.stack((sum_vec1,sum_vec2,sum_vec3,sum_vec4),dim=0)
+        full_vector = torch.sum(torch.stack((sum_vec1,sum_vec2,sum_vec3,sum_vec4),dim=0))
         #print('Post sum:',sum_vector.size())
         x = self.softmax(full_vector)
         x = self.lin1(x)
