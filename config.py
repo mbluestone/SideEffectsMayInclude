@@ -4,17 +4,15 @@ data_dir='processed_data/sider/'
 model_type='nlp'
 pretrain_load_path=None
 
-# graph or combo
-if model_type in ['graph','combo']:
-    num_graph_layers=2
-    num_graph_linear_layers=3
-    num_graph_linear_nodes=100
+# graph model parameters
+num_graph_layers=2
+num_graph_linear_layers=3
+num_graph_linear_nodes=100
 
-# nlp or combo
-if model_type in ['nlp','combo']:
-    num_nlp_linear_layers=3
-    num_nlp_linear_nodes=100
-    embed_size=100
+# nlp model parameters
+num_nlp_linear_layers=3
+num_nlp_linear_nodes=100
+embed_size=100
 
 # model training parameters
 num_epochs=10
