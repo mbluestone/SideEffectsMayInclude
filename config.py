@@ -5,14 +5,15 @@ model_type='nlp'
 pretrain_load_path=None
 
 # graph model parameters
-num_graph_layers=2
-num_graph_linear_layers=3
-num_graph_linear_nodes=100
+graph_layers_sizes=[15,20,36]
 
 # nlp model parameters
-num_nlp_linear_layers=3
-num_nlp_linear_nodes=100
-embed_size=100
+num_lstm_layers=1
+nlp_embed_dim=100
+nlp_output_dim=50
+
+# fully connect linear model parameters
+linear_layers_sizes=[100,200,100]
 
 # model training parameters
 num_epochs=10

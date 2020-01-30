@@ -4,22 +4,18 @@
 # Using a graph/NLP model to train and test.
 
 import config
-
-from torch.optim import Adam
-from torch.optim import lr_scheduler
-
-from torch_geometric.data import DataLoader
-from torch_geometric.nn import GCNConv, global_add_pool
+from utils_data import *
+from models import *
 
 import time
 import csv
 
-from utils_data import *
-from models import *
-
 from os import mkdir
 from os.path import join as path_join
 from os.path import dirname
+
+from torch.optim import Adam
+from torch.optim import lr_scheduler
 
 from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_score, confusion_matrix, roc_auc_score
 
@@ -29,15 +25,19 @@ from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_scor
 def create_model(model_type: str,
                  num_node_features: int,
                  num_classes: int,
-                 num_graph_layers: int,
-                 num_linear_layers: int,
+                 graph_layers_sizes: list,
+                 vocab_size: int,
+                 num_lstm_layers: int, 
+                 nlp_embed_dim: int,
+                 nlp_output_dim: int,
+                 linear_layers_sizes: list,
                  dropout_rate: float,
-                 device, 
-                 pretrain_load_path: str = None) -> MoleculeNet:
+                 device: torch.device, 
+                 pretrain_load_path: str = None) -> FullModel:
     """
     Instantiate the model.
     Args:
-        num_graph_layers: Number of layers to use in the model from [18, 34, 50, 101, 152].
+        num_graph_layers: Number of layers to use in the model.
         num_classes: Number of classes in the dataset.
         pretrain_load_path: Use pretrained weights.
     Returns:
@@ -45,30 +45,20 @@ def create_model(model_type: str,
     """
 
     # make sure a correct model type is requested
-    possible_models = ['graph', 'nlp', 'bert', 'combo']
+    possible_models = ['graph', 'nlp', 'combo']
     assert model_type.lower() in possible_models, f"Model type must be one of {possible_models} not {model_type}"
-    
-    # if only graph model is desired
-    if model_type.lower() == 'graph':
-        model = MoleculeNet(num_node_features, 
-                            num_classes, 
-                            num_graph_layers, 
-                            num_linear_layers,
-                            dropout_rate).to(device)
         
-    # if only BERT model is desired
-    if model_type.lower() == 'nlp':
-        model = LSTMBaseline(num_classes, 
-                             num_linear_nodes, 
-                             embed_size, 
-                             num_linear_layers).to(device)
-        
-    # if combo model is desired
-    if model_type.lower() == 'combo':
-        model = MoleculeNet(num_node_features, 
-                            num_classes, 
-                            num_graph_layers, 
-                            num_linear_layers).to(device)
+    # create the model
+    model = FullModel(model_type=model_type, 
+                      num_classes=num_classes, 
+                      num_node_features=num_node_features, 
+                      graph_layers_sizes=graph_layers_sizes, 
+                      vocab_size=vocab_size, 
+                      num_lstm_layers=num_lstm_layers, 
+                      nlp_embed_dim=nlp_embed_dim, 
+                      nlp_output_dim=nlp_output_dim, 
+                      linear_layers_sizes=linear_layers_sizes, 
+                      dropout_rate=dropout_rate)
     
 
     # if loading a pretrained model from a state dict
@@ -85,8 +75,11 @@ def create_model(model_type: str,
 def train_model(data_dir: str,
                 model_type: str,
                 num_epochs: int,
-                num_graph_layers: int,
-                num_linear_layers: int,
+                graph_layers_sizes: list,
+                num_lstm_layers: int,
+                nlp_embed_dim: int,
+                nlp_output_dim: int,
+                linear_layers_sizes: list,
                 learning_rate: int,
                 learning_rate_decay: int,
                 weight_decay: int,
@@ -95,28 +88,7 @@ def train_model(data_dir: str,
                 log_csv: str,
                 log_file: str = None,
                 pretrain_load_path: str = None):
-    
-    data_dir=config.data_dir, # data directory
-            model_type=config.model_type, # model type
-            pretrain_load_path=config.pretrain_load_path # if loading pretrained model
-            # graph model parameters
-            num_graph_layers=config.num_graph_layers
-            num_graph_linear_layers=config.num_graph_linear_layers
-            num_graph_linear_nodes=config.num_graph_linear_nodes
-            # nlp model parameters
-            num_nlp_linear_layers=config.num_nlp_linear_layers
-            num_nlp_linear_nodes=config.num_nlp_linear_nodes
-            embed_size=config.embed_size
-            # model training parameters
-            num_epochs=config.num_epochs,
-            learning_rate=config.learning_rate,
-            learning_rate_decay=config.learning_rate_decay,
-            weight_decay=config.weight_decay, 
-            dropout_rate=config.dropout_rate,
-            batch_size=config.batch_size,
-            # log files
-            log_csv=config.log_csv,
-            log_file=config.log_file
+
     '''
     Function for training model
     
@@ -124,11 +96,11 @@ def train_model(data_dir: str,
         num_epochs
     '''    
     
-    # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features = load_data_for_model_training(data_dir,model_type,batch_size)
-    
     # use gpu if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    # load data objects
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model_training(data_dir,device,model_type,batch_size)
     
     print(f"num labels: {len(labels)}\n"
           f"num train molecules {dataset_sizes['train']}\n"
@@ -139,11 +111,17 @@ def train_model(data_dir: str,
     model = create_model(model_type=model_type,
                          num_node_features=num_node_features,
                          num_classes=len(labels),
-                         num_graph_layers=num_graph_layers,
-                         num_linear_layers=num_linear_layers,
+                         graph_layers_sizes=graph_layers_sizes,
+                         vocab_size=vocab_size,
+                         num_lstm_layers=num_lstm_layers, 
+                         nlp_embed_dim=nlp_embed_dim,
+                         nlp_output_dim=nlp_output_dim,
+                         linear_layers_sizes=linear_layers_sizes,
                          dropout_rate=dropout_rate,
                          pretrain_load_path=pretrain_load_path,
                          device=device)
+    
+    
     
     # instantiate optimizer
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -206,7 +184,7 @@ def train_helper(model: torch.nn.Module,
         log_csv: str
     '''
 
-    print_cms = True
+    print_cms = False
     # start tracking time
     start = time.time()
     
@@ -329,7 +307,7 @@ def train_helper(model: torch.nn.Module,
         all_val_predictions = np.array([])
 
         # loop through batched validation data
-        for inputs in dataloaders['train']:
+        for inputs in dataloaders['val']:
             
             # pull out batch labels
             val_batch_labels = inputs.y.numpy()

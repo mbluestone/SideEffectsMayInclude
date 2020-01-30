@@ -4,13 +4,13 @@ from utils_train import train_model
 train_model(data_dir=config.data_dir, # data directory
             model_type=config.model_type, # model type
             # graph model parameters
-            num_graph_layers=config.num_graph_layers
-            num_graph_linear_layers=config.num_graph_linear_layers
-            num_graph_linear_nodes=config.num_graph_linear_nodes
+            graph_layers_sizes=config.graph_layers_sizes,
             # nlp model parameters
-            num_nlp_linear_layers=config.num_nlp_linear_layers
-            num_nlp_linear_nodes=config.num_nlp_linear_nodes
-            embed_size=config.embed_size
+            num_lstm_layers=config.num_lstm_layers,
+            nlp_embed_dim=config.nlp_embed_dim,
+            nlp_output_dim=config.nlp_output_dim,
+            # fully connected linear model parameters
+            linear_layers_sizes=config.linear_layers_sizes,
             # model training parameters
             num_epochs=config.num_epochs,
             learning_rate=config.learning_rate,

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import sys
 import os
+from os.path import join as path_join
 from itertools import permutations
 
 from pysmiles import read_smiles
@@ -98,10 +99,11 @@ def generate_ngrams(x,n):
     n_grams = [' '.join(n_gram) for n_gram in list(zip(*[x[i:] for i in range(n)]))]
     return n_grams
 
-def load_data_for_model_training(data_dir: str, 
+def load_data_for_model_training(data_dir: str,
+                                 device: torch.device,
                                  model_type: str,
                                  batch_size: int,
-                                 ngram: int = 1):
+                                 ngram: int = 2):
     
     # get positive weights and labels
     train_labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
@@ -129,6 +131,8 @@ def load_data_for_model_training(data_dir: str,
         # get the size of each dataset
         dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
         
+        vocab_size = 0
+        
     # if nlp model
     elif model_type in ['nlp','bert']:
         
@@ -146,7 +150,8 @@ def load_data_for_model_training(data_dir: str,
                                          skip_header=True, 
                                          fields=tv_datafields)
 
-        TEXT.build_vocab(trn)
+        TEXT.build_vocab(train)
+        vocab_size = len(TEXT.vocab)
 
 
         dataset_sizes = dict()
@@ -171,7 +176,7 @@ def load_data_for_model_training(data_dir: str,
         # get number of features for the nodes
         num_node_features = 0
         
-    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features
+    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
 
 class Molecule(Data):
     '''
