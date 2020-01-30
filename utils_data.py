@@ -1,15 +1,19 @@
-from pysmiles import read_smiles
-import networkx as nx
 import numpy as np
 import pandas as pd
-import torch
 import sys
 import os
 from itertools import permutations
 
+from pysmiles import read_smiles
+import networkx as nx
+
 from skmultilearn.model_selection import iterative_train_test_split
 
+import torch
+
 from torch_geometric.data import Data, Dataset, DataLoader
+
+from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
 def load_raw_data(path):
     '''
