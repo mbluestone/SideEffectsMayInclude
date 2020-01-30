@@ -114,10 +114,10 @@ class LSTMBaseline(nn.Module):
     def __init__(self, num_classes, hidden_dim, emb_dim=300, num_linear=1):
         super().__init__() 
         self.embedding = nn.Embedding(len(TEXT.vocab), emb_dim)
-        self.encoder = nn.LSTM(emb_dim, 
-                               hidden_dim, 
-                               num_layers=1, 
-                               bidirectional=True)
+        self.rnn = nn.LSTM(emb_dim, 
+                           hidden_dim, 
+                           num_layers=1, 
+                           bidirectional=True)
         self.linear_layers = []
         for _ in range(num_linear - 1):
             self.linear_layers.append(nn.Linear(hidden_dim, hidden_dim))
@@ -167,9 +167,6 @@ def create_model(model_type: str,
         
     # if only BERT model is desired
     if model_type.lower() == 'nlp':
-        em_sz = 100
-        nh = 500
-        nl = 2
         model = LSTMBaseline(num_classes, 
                              num_linear_nodes, 
                              embed_size, 
@@ -207,6 +204,28 @@ def train_model(data_dir: str,
                 log_csv: str,
                 log_file: str = None,
                 pretrain_load_path: str = None):
+    
+    data_dir=config.data_dir, # data directory
+            model_type=config.model_type, # model type
+            pretrain_load_path=config.pretrain_load_path # if loading pretrained model
+            # graph model parameters
+            num_graph_layers=config.num_graph_layers
+            num_graph_linear_layers=config.num_graph_linear_layers
+            num_graph_linear_nodes=config.num_graph_linear_nodes
+            # nlp model parameters
+            num_nlp_linear_layers=config.num_nlp_linear_layers
+            num_nlp_linear_nodes=config.num_nlp_linear_nodes
+            embed_size=config.embed_size
+            # model training parameters
+            num_epochs=config.num_epochs,
+            learning_rate=config.learning_rate,
+            learning_rate_decay=config.learning_rate_decay,
+            weight_decay=config.weight_decay, 
+            dropout_rate=config.dropout_rate,
+            batch_size=config.batch_size,
+            # log files
+            log_csv=config.log_csv,
+            log_file=config.log_file
     '''
     Function for training model
     
