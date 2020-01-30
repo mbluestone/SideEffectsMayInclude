@@ -81,6 +81,93 @@ def split_data(X, y, test_split = 0.2, val_split = 0.1, save_path = None):
     # just return the split data and don't save
     else:
         return X_train, y_train, X_val, y_val, X_test, y_test
+    
+def get_pos_weights(labels):
+    '''
+    Calculate the positive weights for each class
+    '''
+    weights = [(labels.shape[0]-labels[:,i].sum())/labels[:,i].sum() 
+               for i in range(labels.shape[1])]
+    return torch.tensor(weights)
+
+def generate_ngrams(x,n):
+    n_grams = [' '.join(n_gram) for n_gram in list(zip(*[x[i:] for i in range(n)]))]
+    return n_grams
+
+def load_data_for_model_training(data_dir: str, 
+                                 model_type: str,
+                                 batch_size: int,
+                                 ngram=1: int):
+    
+    # get positive weights and labels
+    train_labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
+    labels = train_labels_df.columns.tolist()
+    pos_weight = get_pos_weights(np.matrix(train_labels_df))
+    
+    # if graph model
+    if model_type in ['graph']:
+        
+        # load datasets
+        datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')))
+                    for x in ['train', 'val']}
+
+        # get labels and make sure train and val data have the same
+        labels = datasets['train'].labels
+        assert labels == datasets['val'].labels
+
+        # get number of features for the nodes
+        num_node_features = len(datasets['train'][0].x[0])
+
+        # create dataloaders
+        dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
+                       for x in ['train', 'val']}
+
+        # get the size of each dataset
+        dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
+        
+    # if nlp model
+    elif model_type in ['nlp','bert']:
+        
+        tokenize = lambda x: generate_ngrams(x,ngram)
+        TEXT = Field(sequential=True, tokenize=tokenize, lower=True)
+        LABEL = Field(sequential=False, use_vocab=False)
+
+        tv_datafields = [("smiles", TEXT)]
+        tv_datafields.extend([(label, LABEL) for label in labels])
+
+        train, val = TabularDataset.splits(path=data_dir,
+                                         train='train.csv', 
+                                         validation="val.csv", 
+                                         format='csv', 
+                                         skip_header=True, 
+                                         fields=tv_datafields)
+
+        TEXT.build_vocab(trn)
+
+
+        dataset_sizes = dict()
+        dataset_sizes['train'] = len(train)
+        dataset_sizes['val'] = len(val)
+
+        train_iter, val_iter = BucketIterator.splits((train, val), 
+                                                     batch_sizes=(30, 30),
+                                                     device=device,
+                                                     sort_key=lambda x: len(x.smiles),
+                                                     sort_within_batch=False,
+                                                     repeat=False)
+
+
+
+        dataloaders=dict()
+        dataloaders['train'] = TextBatchWrapper(train_iter, "smiles", 
+                                                labels)
+        dataloaders['val'] = TextBatchWrapper(val_iter, "smiles", 
+                                              labels)
+        
+        # get number of features for the nodes
+        num_node_features = 0
+        
+    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features
 
 class Molecule(Data):
     '''
