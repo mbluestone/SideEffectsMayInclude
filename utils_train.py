@@ -6,7 +6,7 @@
 import config
 
 import torch
-import torch.nn
+import torch.nn as nn
 from torch.nn import Linear, Dropout, BCEWithLogitsLoss, Softmax
 import torch.nn.functional as F
 from torch.optim import Adam
