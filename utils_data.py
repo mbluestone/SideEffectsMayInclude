@@ -97,7 +97,7 @@ def generate_ngrams(x,n):
 def load_data_for_model_training(data_dir: str, 
                                  model_type: str,
                                  batch_size: int,
-                                 ngram=1: int):
+                                 ngram: int = 1):
     
     # get positive weights and labels
     train_labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
