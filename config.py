@@ -2,9 +2,19 @@ data_dir='processed_data/sider/'
 
 # model creation parameters
 model_type='graph'
-num_graph_layers=2
-num_linear_layers=3
 pretrain_load_path=None
+
+# graph
+if model_type=='graph'
+    num_graph_layers=2
+    num_linear_layers=3
+    num_linear_nodes=100
+
+# nlp
+if model_type=='nlp':
+    num_linear_layers=3
+    num_linear_nodes=100
+    embed_size=100
 
 # model training parameters
 num_epochs=10

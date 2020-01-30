@@ -32,7 +32,7 @@ from os.path import dirname
 from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_score, confusion_matrix, roc_auc_score
 
 
-#### MODEL CLASS #####
+################################## MODEL CLASSES ##################################
 class MoleculeNet(torch.nn.Module):
     def __init__(self, 
                  num_node_features: int, 
@@ -133,6 +133,7 @@ class LSTMBaseline(nn.Module):
         preds = self.predictor(feature)
         return preds
 
+########################## DATA LOADING AND MODEL CREATION ###########################
 
 def create_model(model_type: str,
                  num_node_features: int,
@@ -170,9 +171,9 @@ def create_model(model_type: str,
         nh = 500
         nl = 2
         model = LSTMBaseline(num_classes, 
-                             nh, 
-                             em_sz, 
-                             nl).to(device)
+                             num_linear_nodes, 
+                             embed_size, 
+                             num_linear_layers).to(device)
         
     # if combo model is desired
     if model_type.lower() == 'combo':
@@ -272,6 +273,8 @@ def load_data_for_model_training(data_dir: str,
         num_node_features = 0
         
     return dataloaders, dataset_sizes, pos_weight, labels, num_node_features
+
+################################## MODEL TRAINING ##################################
 
 def train_model(data_dir: str,
                 model_type: str,
