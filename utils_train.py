@@ -500,7 +500,7 @@ def train_helper(model: torch.nn.Module,
         all_val_predictions = np.array([])
 
         # loop through batched validation data
-        for inputs in dataloaders['val']:
+        for inputs in dataloaders['train']:
             
             # pull out batch labels
             val_batch_labels = inputs.y.numpy()
