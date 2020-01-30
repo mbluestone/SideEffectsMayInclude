@@ -56,8 +56,8 @@ class MoleculeNet(torch.nn.Module):
         x = F.selu(x)
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
-        #x = F.relu(x)
-        #x = F.dropout(x, training=self.training)
+        x = F.relu(x)
+        x = F.dropout(x, training=self.training)
         sum_vector = global_add_pool(x, batch = batch_vec)
         x = F.relu(sum_vector)
         x = F.dropout(x, training=self.training)
@@ -98,13 +98,9 @@ class GoogleMoleculeNet(torch.nn.Module):
         c3 = F.selu(c3)
         c4 = self.conv4(c3, edge_index)
         c4 = F.selu(c4)
-        sum_vec1 = global_add_pool(c1, batch = batch_vec)
-        sum_vec2 = global_add_pool(c2, batch = batch_vec)
-        sum_vec3 = global_add_pool(c3, batch = batch_vec)
-        sum_vec4 = global_add_pool(c4, batch = batch_vec)
-        full_vector = torch.sum(torch.stack((sum_vec1,sum_vec2,sum_vec3,sum_vec4),dim=0))
+        sum_vector = global_add_pool(c4, batch = batch_vec)
         #print('Post sum:',sum_vector.size())
-        x = self.softmax(full_vector)
+        x = self.softmax(sum_vector)
         x = self.lin1(x)
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
@@ -204,7 +200,8 @@ def get_pos_weights(labels):
     return torch.tensor(weights)
 
 def load_data_for_model_training(data_dir: str, 
-                                 model_type: str):
+                                 model_type: str,
+                                 batch_size: int):
     
     # get positive weights and labels
     train_labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
@@ -297,7 +294,7 @@ def train_model(data_dir: str,
     '''    
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features = load_data_for_model_training(data_dir,model_type)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features = load_data_for_model_training(data_dir,model_type,batch_size)
     
     # use gpu if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
