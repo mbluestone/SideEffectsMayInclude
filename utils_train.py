@@ -63,7 +63,8 @@ def create_model(model_type: str,
 
     # if loading a pretrained model from a state dict
     if pretrain_load_path:
-        model.load_state_dict(torch.load(pretrain_load_path, map_location=device))
+        ckpt = torch.load(f=pretrain_load_path)
+        model.load_state_dict(state_dict=ckpt["model_state_dict"])
         
     # transfer model to cpu or gpu
     model = model.to(device=device)
@@ -431,17 +432,40 @@ def train_helper(model: torch.nn.Module,
 #            MODEL EVALUATION             #
 ###########################################
 
-def evaluate_model(model, 
+def evaluate_model(model_path, 
                    data_dir, 
                    out_file, 
-                   model_type):
+                   model_type, 
+                   graph_layers_sizes, 
+                   num_lstm_layers, 
+                   nlp_embed_dim, 
+                   linear_layers_sizes, 
+                   dropout_rate):
     
     # use gpu if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,training=False)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,training=False)
     
+    
+    model = create_model(model_type=model_type,
+                         num_node_features=num_node_features,
+                         num_classes=len(labels),
+                         graph_layers_sizes=graph_layers_sizes,
+                         vocab_size=vocab_size,
+                         num_lstm_layers=num_lstm_layers, 
+                         nlp_embed_dim=nlp_embed_dim,
+                         nlp_output_dim=nlp_output_dim,
+                         linear_layers_sizes=linear_layers_sizes,
+                         dropout_rate=dropout_rate,
+                         pretrain_load_path=model_path,
+                         device=device)
+    
+    model = model.to(device=device)
+
+    model.train(mode=False)
+    print(f"model loaded from {model_path}")
     
     # Validation
     model.eval()
@@ -524,7 +548,7 @@ def evaluate_model(model,
         print('\n',label,':\n')
         print(confusion_matrix(all_labels[:,i],all_predictions[:,i]))
         
-    pd.DataFrame(all_probs,columns=labels).to_csv("test_predicitions.csv")
+    pd.DataFrame(all_probs,columns=labels).to_csv(out_file)
     
 
     # log metrics in log csv
