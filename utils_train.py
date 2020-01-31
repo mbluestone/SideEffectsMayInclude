@@ -72,6 +72,12 @@ def create_model(model_type: str,
 
 ################################## MODEL TRAINING ##################################
 
+def print_parameters(config):
+    
+    for param in dir(config): 
+        if "__" not in param:
+            print(f'{param}: {getattr(config,param)}')
+
 def train_model(data_dir: str,
                 model_type: str,
                 num_epochs: int,
@@ -188,6 +194,8 @@ def train_helper(model: torch.nn.Module,
         log_csv: str
     '''
 
+    print_parameters(config)
+    
     print_cms = False
     # start tracking time
     start = time.time()
@@ -201,7 +209,7 @@ def train_helper(model: torch.nn.Module,
         for group in optimizer.param_groups:
             current_lr = group["lr"]
             
-        print(f'Current LR: {current_lr:.5f})
+        print(f'Current LR: {current_lr:.5f}')
         
         # Training
         model.train()
