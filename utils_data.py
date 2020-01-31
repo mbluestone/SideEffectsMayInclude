@@ -178,12 +178,15 @@ def get_text_data(data_dir: str,
     # if testing
     else:
         
+        # load TEXT field from 
         with open("trained_models/TEXT.Field","rb")as f:
              TEXT=dill.load(f)
+        LABEL = Field(sequential=False, use_vocab=False)
+
+        datafields = [("smiles", TEXT)]
+        datafields.extend([(label, LABEL) for label in labels])
                 
         vocab_size = len(TEXT.vocab)
-                
-        datafields = [("smiles", TEXT)]
         
         test = TabularDataset(path=path_join(data_dir+'test.csv'),
                               format='csv', 
@@ -203,9 +206,9 @@ def get_text_data(data_dir: str,
 
 
     
-        dataloaders['test'] = TextBatchWrapper(test_iter, "smiles", 
-                                                labels)
-        print(dataloaders)
+        dataloaders['test'] = TextBatchWrapper(test_iter, 
+                                               "smiles", 
+                                               labels)
 
     # get number of features for the nodes
     num_node_features = 0
@@ -230,12 +233,19 @@ def load_data_for_model(data_dir: str,
     # if graph model
     if model_type == 'graph':
         
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_data(data_dir,batch_size,training)
+        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_data(data_dir, 
+                                                                                   batch_size, 
+                                                                                   training)
         
     # if nlp model
     elif model_type == 'nlp':
         
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_text_data(data_dir,device,batch_size,labels,ngram,training)
+        dataloaders, dataset_sizes, num_node_features, vocab_size = get_text_data(data_dir, 
+                                                                                  device, 
+                                                                                  batch_size, 
+                                                                                  labels, 
+                                                                                  ngram, 
+                                                                                  training)
         
     return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
 

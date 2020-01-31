@@ -63,7 +63,11 @@ def create_model(model_type: str,
 
     # if loading a pretrained model from a state dict
     if pretrain_load_path:
-        ckpt = torch.load(f=pretrain_load_path)
+        if torch.cuda.is_available():
+            ckpt = torch.load(f=pretrain_load_path)
+        else:
+            ckpt = torch.load(f=pretrain_load_path, 
+                              map_location=torch.device('cpu'))
         model.load_state_dict(state_dict=ckpt["model_state_dict"])
         
     # transfer model to cpu or gpu
@@ -448,7 +452,12 @@ def evaluate_model(model_path,
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,ngram=2,training=False)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(data_dir, 
+                                                                                                   device, 
+                                                                                                   model_type, 
+                                                                                                   batch_size, 
+                                                                                                   ngram=2, 
+                                                                                                   training=False)
     
     
     model = create_model(model_type=model_type,
