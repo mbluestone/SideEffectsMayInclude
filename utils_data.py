@@ -133,16 +133,17 @@ def get_text_data(data_dir: str,
                   ngram: int,
                   training: bool):
     
-    preprocessing = lambda x: generate_ngrams(x,ngram)
-    TEXT = Field(sequential=True, tokenize=preprocessing, lower=True)
-    LABEL = Field(sequential=False, use_vocab=False)
-
-    datafields = [("smiles", TEXT)]
-    datafields.extend([(label, LABEL) for label in labels])
+    tokenizer = lambda x: generate_ngrams(x,ngram)
 
     dataset_sizes = dict()
     dataloaders=dict()
     if training:
+        
+        TEXT = Field(sequential=True, tokenize=tokenizer, lower=True)
+        LABEL = Field(sequential=False, use_vocab=False)
+
+        datafields = [("smiles", TEXT)]
+        datafields.extend([(label, LABEL) for label in labels])
         
         train, val = TabularDataset.splits(path=data_dir,
                                          train='train.csv', 
@@ -184,11 +185,10 @@ def get_text_data(data_dir: str,
                 
         datafields = [("smiles", TEXT)]
         
-        test = TabularDataset.splits(path=data_dir,
-                                     test='test.csv', 
-                                     format='csv', 
-                                     skip_header=True, 
-                                     fields=datafields)
+        test = TabularDataset(path=path_join(data_dir+'test.csv'),
+                              format='csv', 
+                              skip_header=True, 
+                              fields=datafields)
     
         dataset_sizes['test'] = len(test)
 
