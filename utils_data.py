@@ -203,7 +203,7 @@ def load_data_for_model(data_dir: str,
                         device: torch.device, 
                         model_type: str, 
                         batch_size: int, 
-                        ngram: int = 2,
+                        ngram: int,
                         training: bool):
     
     # get positive weights and labels
