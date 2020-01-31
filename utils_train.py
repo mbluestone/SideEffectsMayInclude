@@ -106,7 +106,7 @@ def train_model(data_dir: str,
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model_training(data_dir,device,model_type,batch_size)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,training=True)
     
     print(f"num labels: {len(labels)}\n"
           f"num train molecules {dataset_sizes['train']}\n"
@@ -425,5 +425,104 @@ def train_helper(model: torch.nn.Module,
     # Print training information at the end.
     print(f"\nTraining complete in "
           f"{(time.time() - start) // 60:.2f} minutes")
+
+
+###########################################
+#            MODEL EVALUATION             #
+###########################################
+
+def evaluate_model(model, 
+                   data_dir, 
+                   out_file, 
+                   model_type):
     
-  
+    # use gpu if available
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    # load data objects
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,training=False)
+    
+    
+    # Validation
+    model.eval()
+
+    # initialize running metrics
+    running_accuracy = 0.0
+    running_precision = 0.0
+    running_recall = 0.0
+    running_f1 = 0.0
+    running_roc_auc = 0.0
+
+    all_labels = np.array([])
+    all_predictions = np.array([])
+
+    # loop through batched validation data
+    for inputs in dataloaders['test']:
+
+        # pull out batch labels
+        batch_labels = inputs.y.numpy()
+
+        # send to device
+        inputs.y = inputs.y.to(device)
+        inputs.x = inputs.x.to(device)
+        if 'edge_index' in dir(inputs):
+            inputs.edge_index = inputs.edge_index.to(device)
+            inputs.batch = inputs.batch.to(device)
+
+        with torch.set_grad_enabled(mode=False):
+
+            # make predicitions
+            out = model(inputs)
+
+            batch_probs = torch.sigmoid(out).detach().cpu().numpy()
+            batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
+
+            # calculate performance metrics
+            batch_accuracy = 1-hamming_loss(batch_labels,batch_predictions)
+            batch_precision = precision_score(batch_labels,batch_predictions,
+                                            average='micro',zero_division=0)
+            batch_recall = recall_score(batch_labels,batch_predictions,
+                                      average='micro',zero_division=0)
+            batch_f1 = f1_score(batch_labels,batch_predictions,
+                              average='micro',zero_division=0)
+            batch_roc_auc = roc_auc_score(batch_labels,batch_probs,
+                                        average='micro')
+
+        # update running metrics
+        running_accuracy += batch_accuracy * inputs.y.size(0)
+        running_precision += batch_precision * inputs.y.size(0)
+        running_recall += batch_recall * inputs.y.size(0)
+        running_f1 += batch_f1 * inputs.y.size(0)
+        running_roc_auc += batch_roc_auc * inputs.y.size(0)
+
+        if all_labels.size == 0:
+            all_labels = batch_labels
+            all_predictions = batch_predictions
+        else:
+            all_labels = np.vstack((all_labels,batch_labels))
+            all_predictions = np.vstack((all_predictions,batch_predictions))
+
+    # calculate validation metrics for the epoch
+    accuracy = np.round(val_running_accuracy/dataset_sizes['train'],decimals=4)
+    precision = np.round(val_running_precision/dataset_sizes['train'],decimals=4)
+    recall = np.round(val_running_recall/dataset_sizes['train'],decimals=4)
+    f1 = np.round(val_running_f1/dataset_sizes['train'],decimals=4)
+    roc_auc = np.round(val_running_roc_auc/dataset_sizes['train'],decimals=4)
+
+    print(f'Test:\n'
+          f'Accuracy = {accuracy}, '
+          f'Precision = {precision}, '
+          f'Recall = {recall}, '
+          f'F1 = {f1}, '
+          f'ROC_AUC = {roc_auc}\n') 
+
+    # print confusion matrices
+    for i,label in enumerate(labels):
+        print('\n',label,':\n')
+        print(confusion_matrix(all_train_labels[:,i],all_train_predictions[:,i]))
+    
+
+    # log metrics in log csv
+    #writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
+     #   str(epoch), epoch_train_loss, epoch_train_acc, epoch_train_f1, epoch_train_roc_auc,
+     #   epoch_val_loss, epoch_val_acc, epoch_val_f1, epoch_train_roc_auc).split(','))

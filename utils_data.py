@@ -100,92 +100,129 @@ def generate_ngrams(x,n):
     return n_grams
 
 def get_graph_data(data_dir: str, 
-                   batch_size: int):
+                   batch_size: int, 
+                   training: bool):
+    if training:
+        phase_names = ['train','val']
+    else:
+        phase_names = ['test']
+    
     # load datasets
     datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')))
-                for x in ['train', 'val']}
+                for x in phase_names}
 
     # get number of features for the nodes
-    num_node_features = len(datasets['train'][0].x[0])
+    num_node_features = len(datasets[phase_names[0]][0].x[0])
 
     # create dataloaders
     dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=4) 
-                   for x in ['train', 'val']}
+                   for x in phase_names}
 
     # get the size of each dataset
-    dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
+    dataset_sizes = {x: len(datasets[x]) for x in phase_names}
 
     vocab_size = 0
     
     return dataloaders, dataset_sizes, num_node_features, vocab_size
 
-def get_text_data(data_dir: str, 
+def get_text_data(data_dir: str,
+                  device: torch.device,
                   batch_size: int,
                   labels: list,
-                  ngram: int):
+                  ngram: int,
+                  training: bool):
     
-    tokenize = lambda x: generate_ngrams(x,ngram)
-    TEXT = Field(sequential=True, tokenize=tokenize, lower=True)
+    preprocessing = lambda x: generate_ngrams(x,ngram)
+    TEXT = Field(sequential=True, preprocessing=preprocessing, lower=True)
     LABEL = Field(sequential=False, use_vocab=False)
 
-    tv_datafields = [("smiles", TEXT)]
-    tv_datafields.extend([(label, LABEL) for label in labels])
-
-    train, val = TabularDataset.splits(path=data_dir,
-                                     train='train.csv', 
-                                     validation="val.csv", 
-                                     format='csv', 
-                                     skip_header=True, 
-                                     fields=tv_datafields)
-
-    TEXT.build_vocab(train)
-    vocab_size = len(TEXT.vocab)
-
+    datafields = [("smiles", TEXT)]
+    datafields.extend([(label, LABEL) for label in labels])
 
     dataset_sizes = dict()
-    dataset_sizes['train'] = len(train)
-    dataset_sizes['val'] = len(val)
-
-    train_iter, val_iter = BucketIterator.splits((train, val), 
-                                                 batch_sizes=(batch_size, batch_size),
-                                                 device=device,
-                                                 sort_key=lambda x: len(x.smiles),
-                                                 sort_within_batch=False,
-                                                 repeat=False)
-
-
-
     dataloaders=dict()
-    dataloaders['train'] = TextBatchWrapper(train_iter, "smiles", 
-                                            labels)
-    dataloaders['val'] = TextBatchWrapper(val_iter, "smiles", 
-                                          labels)
+    if training:
+        train, val = TabularDataset.splits(path=data_dir,
+                                         train='train.csv', 
+                                         validation="val.csv", 
+                                         format='csv', 
+                                         skip_header=True, 
+                                         fields=datafields)
+
+        TEXT.build_vocab(train)
+        vocab_size = len(TEXT.vocab)
+
+
+    
+        dataset_sizes['train'] = len(train)
+        dataset_sizes['val'] = len(val)
+
+        train_iter, val_iter = BucketIterator.splits((train, val), 
+                                                     batch_sizes=(batch_size, batch_size),
+                                                     device=device,
+                                                     sort_key=lambda x: len(x.smiles),
+                                                     sort_within_batch=False,
+                                                     repeat=False)
+
+
+
+    
+        dataloaders['train'] = TextBatchWrapper(train_iter, "smiles", 
+                                                labels)
+        dataloaders['val'] = TextBatchWrapper(val_iter, "smiles", 
+                                              labels)
+    # if testing
+    else:
+        test = TabularDataset.splits(path=data_dir,
+                                     test='test.csv', 
+                                     format='csv', 
+                                     skip_header=True, 
+                                     fields=datafields)
+    
+        dataset_sizes['test'] = len(test)
+
+        test_iter = BucketIterator.splits(test, 
+                                         batch_sizes=batch_size,
+                                         device=device,
+                                         sort_key=lambda x: len(x.smiles),
+                                         sort_within_batch=False,
+                                         repeat=False)
+
+
+
+    
+        dataloaders['test'] = TextBatchWrapper(test_iter, "smiles", 
+                                                labels)
 
     # get number of features for the nodes
     num_node_features = 0
     
     return dataloaders, dataset_sizes, num_node_features, vocab_size
 
-def load_data_for_model_training(data_dir: str,
-                                 device: torch.device,
-                                 model_type: str,
-                                 batch_size: int,
-                                 ngram: int = 2):
+def load_data_for_model(data_dir: str, 
+                        device: torch.device, 
+                        model_type: str, 
+                        batch_size: int, 
+                        ngram: int = 2,
+                        training: bool):
     
     # get positive weights and labels
-    train_labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
-    labels = train_labels_df.columns.tolist()
-    pos_weight = get_pos_weights(np.matrix(train_labels_df))
+    if training:
+        labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
+    else:
+        labels_df = load_raw_data(path_join(data_dir,'test.csv'))[1]
+    labels = labels_df.columns.tolist()
+    pos_weight = get_pos_weights(np.matrix(labels_df))
     
     # if graph model
     if model_type == 'graph':
         
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_data(data_dir,batch_size)
+        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_data(data_dir,batch_size,training)
         
     # if nlp model
     elif model_type == 'nlp':
         
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_text_data(data_dir,batch_size,labels,ngram)
+        dataloaders, dataset_sizes, num_node_features, vocab_size = get_text_data(data_dir,device,batch_size,labels,ngram,training)
         
     return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
 
