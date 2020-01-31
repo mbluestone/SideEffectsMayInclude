@@ -180,12 +180,12 @@ def load_data_for_model_training(data_dir: str,
     # if graph model
     if model_type == 'graph':
         
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_data(data_dir,batch_size,ngram)
+        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_data(data_dir,batch_size)
         
     # if nlp model
     elif model_type == 'nlp':
         
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_text_data(data_dir,batch_size,labels)
+        dataloaders, dataset_sizes, num_node_features, vocab_size = get_text_data(data_dir,batch_size,labels,ngram)
         
     return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
 
