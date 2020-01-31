@@ -133,7 +133,7 @@ def get_text_data(data_dir: str,
                   training: bool):
     
     preprocessing = lambda x: generate_ngrams(x,ngram)
-    TEXT = Field(sequential=True, preprocessing=preprocessing, lower=True)
+    TEXT = Field(sequential=True, tokenize=preprocessing, lower=True)
     LABEL = Field(sequential=False, use_vocab=False)
 
     datafields = [("smiles", TEXT)]
