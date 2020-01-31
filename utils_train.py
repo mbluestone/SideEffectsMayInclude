@@ -496,7 +496,7 @@ def evaluate_model(model_path,
     for inputs in dataloaders['test']:
 
         # pull out batch labels
-        batch_labels = inputs.y.numpy()
+        batch_labels = inputs.y.cpu().numpy()
 
         # send to device
         inputs.y = inputs.y.to(device)
