@@ -497,6 +497,7 @@ def evaluate_model(model_path,
 
         # pull out batch labels
         batch_labels = inputs.y.cpu().numpy()
+        print(batch_labels)
 
         # send to device
         inputs.y = inputs.y.to(device)
@@ -512,6 +513,8 @@ def evaluate_model(model_path,
 
             batch_probs = torch.sigmoid(out).detach().cpu().numpy()
             batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
+            print(batch_probs)
+            print(batch_predictions)
 
             # calculate performance metrics
             batch_accuracy = 1-hamming_loss(batch_labels,batch_predictions)
