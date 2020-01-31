@@ -328,7 +328,7 @@ def train_helper(model: torch.nn.Module,
         for inputs in dataloaders['val']:
             
             # pull out batch labels
-            val_batch_labels = inputs.y.numpy()
+            val_batch_labels = inputs.y.cpu().numpy()
             
             # send to device
             inputs.y = inputs.y.to(device)
