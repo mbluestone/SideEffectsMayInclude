@@ -205,6 +205,7 @@ def get_text_data(data_dir: str,
     
         dataloaders['test'] = TextBatchWrapper(test_iter, "smiles", 
                                                 labels)
+        print(dataloaders)
 
     # get number of features for the nodes
     num_node_features = 0
