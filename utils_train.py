@@ -440,7 +440,8 @@ def evaluate_model(model_path,
                    num_lstm_layers, 
                    nlp_embed_dim, 
                    linear_layers_sizes, 
-                   dropout_rate):
+                   dropout_rate,
+                   batch_size):
     
     # use gpu if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
