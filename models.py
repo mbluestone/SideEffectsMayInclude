@@ -11,8 +11,6 @@ class GraphNet(torch.nn.Module):
                  graph_layers_sizes: int):
         
         super(GraphNet, self).__init__()
-        #self.conv1 = GCNConv(num_node_features, 16)
-        #self.conv2 = GCNConv(16, 16)
         
         graph_layers_sizes.insert(0,num_node_features)
         self.conv_layers = []
