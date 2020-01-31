@@ -4,7 +4,7 @@ from utils_train import evaluate_model
 evaluate_model(data_dir=config.data_dir, # data directory
             model_type=config.model_type, # model type
             out_file="test_predictions.csv",
-            model_path="pretrained_models/nlp_model.pt",
+            model_path="trained_models/nlp_model.pt",
             graph_layers_sizes=config.graph_layers_sizes, 
             num_lstm_layers=config.num_lstm_layers, 
             nlp_embed_dim=config.nlp_embed_dim, 
