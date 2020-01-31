@@ -106,7 +106,7 @@ def train_model(data_dir: str,
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,training=True)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,ngram=2,training=True)
     
     print(f"num labels: {len(labels)}\n"
           f"num train molecules {dataset_sizes['train']}\n"
