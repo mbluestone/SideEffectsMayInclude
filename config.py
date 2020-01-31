@@ -1,14 +1,14 @@
 data_dir='processed_data/sider/'
 
 # model creation parameters
-model_type='graph'
+model_type='text'
 pretrain_load_path=None
 
 # graph model parameters
 graph_layers_sizes=[15,20,27,36]
 
 # nlp model parameters
-num_lstm_layers=1
+num_lstm_layers=2
 nlp_embed_dim=100
 nlp_output_dim=50
 
@@ -16,13 +16,13 @@ nlp_output_dim=50
 linear_layers_sizes=[100,200,100]
 
 # model training parameters
-num_epochs=100
+num_epochs=50
 learning_rate=0.1
-learning_rate_decay=0.85 
+learning_rate_decay=0.9 
 weight_decay=1e-4 
-dropout_rate=0.5
-batch_size=30
+dropout_rate=0.4
+batch_size=64
 
 # logging
 log_file=None
-log_csv = 'logs/graph_test_log.csv'
+log_csv = 'logs/nlp_test_log.csv'
