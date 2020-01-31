@@ -439,6 +439,7 @@ def evaluate_model(model_path,
                    graph_layers_sizes, 
                    num_lstm_layers, 
                    nlp_embed_dim, 
+                   nlp_output_dim,
                    linear_layers_sizes, 
                    dropout_rate,
                    batch_size):
