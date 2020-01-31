@@ -550,7 +550,7 @@ def evaluate_model(model_path,
         print('\n',label,':\n')
         print(confusion_matrix(all_labels[:,i],all_predictions[:,i]))
         
-    pd.DataFrame(all_probs,columns=labels).to_csv(out_file)
+    pd.DataFrame(all_probs,columns=labels).to_csv(out_file,index=False)
     
 
     # log metrics in log csv
