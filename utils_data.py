@@ -142,6 +142,7 @@ def get_text_data(data_dir: str,
     dataset_sizes = dict()
     dataloaders=dict()
     if training:
+        
         train, val = TabularDataset.splits(path=data_dir,
                                          train='train.csv', 
                                          validation="val.csv", 
@@ -151,8 +152,9 @@ def get_text_data(data_dir: str,
 
         TEXT.build_vocab(train)
         vocab_size = len(TEXT.vocab)
-
-
+        
+        with open("trained_models/TEXT.Field","wb")as f:
+             dill.dump(TEXT,f)
     
         dataset_sizes['train'] = len(train)
         dataset_sizes['val'] = len(val)
@@ -173,6 +175,14 @@ def get_text_data(data_dir: str,
                                               labels)
     # if testing
     else:
+        
+        with open("model/TEXT.Field","rb")as f:
+             TEXT=dill.load(f)
+                
+        vocab_size = len(TEXT.vocab)
+                
+        datafields = [("smiles", TEXT)]
+        
         test = TabularDataset.splits(path=data_dir,
                                      test='test.csv', 
                                      format='csv', 
