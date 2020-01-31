@@ -177,7 +177,7 @@ def get_text_data(data_dir: str,
     # if testing
     else:
         
-        with open("model/TEXT.Field","rb")as f:
+        with open("trained_models/TEXT.Field","rb")as f:
              TEXT=dill.load(f)
                 
         vocab_size = len(TEXT.vocab)
