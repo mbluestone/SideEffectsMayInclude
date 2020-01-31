@@ -447,7 +447,7 @@ def evaluate_model(model_path,
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,training=False)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(data_dir,device,model_type,batch_size,ngram=2,training=False)
     
     
     model = create_model(model_type=model_type,
