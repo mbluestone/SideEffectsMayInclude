@@ -9,4 +9,5 @@ evaluate_model(data_dir=config.data_dir, # data directory
             num_lstm_layers=config.num_lstm_layers, 
             nlp_embed_dim=config.nlp_embed_dim, 
             linear_layers_sizes=config.linear_layers_sizes, 
-            dropout_rate=config.dropout_rate) 
+            dropout_rate=config.dropout_rate,
+              batch_size=config.batch_size) 
