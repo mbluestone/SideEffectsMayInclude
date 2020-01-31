@@ -532,11 +532,11 @@ def evaluate_model(model_path,
             all_predictions = np.vstack((all_predictions,batch_predictions))
 
     # calculate validation metrics for the epoch
-    accuracy = np.round(val_running_accuracy/dataset_sizes['train'],decimals=4)
-    precision = np.round(val_running_precision/dataset_sizes['train'],decimals=4)
-    recall = np.round(val_running_recall/dataset_sizes['train'],decimals=4)
-    f1 = np.round(val_running_f1/dataset_sizes['train'],decimals=4)
-    roc_auc = np.round(val_running_roc_auc/dataset_sizes['train'],decimals=4)
+    accuracy = np.round(running_accuracy/dataset_sizes['test'],decimals=4)
+    precision = np.round(running_precision/dataset_sizes['test'],decimals=4)
+    recall = np.round(running_recall/dataset_sizes['test'],decimals=4)
+    f1 = np.round(running_f1/dataset_sizes['test'],decimals=4)
+    roc_auc = np.round(running_roc_auc/dataset_sizes['test'],decimals=4)
 
     print(f'Test:\n'
           f'Accuracy = {accuracy}, '
