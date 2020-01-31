@@ -141,10 +141,13 @@ def train_model(data_dir: str,
         writer = csv.writer(file)
         
         # write header
-        writer.writerow(['epoch','train_loss','train_acc','train_f1','train_roc_auc','val_loss','val_acc','val_f1','val_roc_auc'])
+        writer.writerow(['epoch','train_loss','train_acc','train_f1',
+                         'train_roc_auc','val_loss','val_acc','val_f1',
+                         'val_roc_auc'])
         
         # train the model
         train_helper(model=model,
+                     model_type=model_type,
                      device=device,
                      optimizer=optimizer,
                      scheduler=scheduler,
@@ -159,6 +162,7 @@ def train_model(data_dir: str,
     
 
 def train_helper(model: torch.nn.Module,
+                 model_type: str,
                  device: torch.device,
                  optimizer,
                  scheduler,
@@ -192,6 +196,12 @@ def train_helper(model: torch.nn.Module,
     for epoch in range(num_epochs):
 
         print(f'Epoch {epoch}:')
+        
+        current_lr = None
+        for group in optimizer.param_groups:
+            current_lr = group["lr"]
+            
+        print(f'Current LR: {current_lr:.5f})
         
         # Training
         model.train()
@@ -397,6 +407,12 @@ def train_helper(model: torch.nn.Module,
             epoch_val_loss, epoch_val_acc, epoch_val_f1, epoch_train_roc_auc).split(','))
 
     #writer.close()
+    
+    # save model
+    torch.save(obj={"model_state_dict": model.state_dict(), 
+                    "optimizer_state_dict": optimizer.state_dict(), 
+                    "scheduler_state_dict": scheduler.state_dict()}, 
+                    f="trained_models/{}_model.pt".format(model_type))
     
     # Print training information at the end.
     print(f"\nTraining complete in "

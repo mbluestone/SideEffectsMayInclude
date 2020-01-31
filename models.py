@@ -100,6 +100,8 @@ class FullModel(torch.nn.Module):
             x = self.graph_net(data)
         elif self.model_type == 'nlp':
             x = self.nlp_net(data)
+        elif self.model_type == 'nlp':
+            x = self.nlp_net(data)
 
         for layer in self.linear_layers:
             x = self.dropout(F.relu(layer(x)))
