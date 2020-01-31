@@ -4,6 +4,7 @@ import sys
 import os
 from os.path import join as path_join
 from itertools import permutations
+import dill
 
 from pysmiles import read_smiles
 import networkx as nx
