@@ -192,13 +192,13 @@ def get_text_data(data_dir: str,
     
         dataset_sizes['test'] = len(test)
 
-        test_iter = BucketIterator.splits(test, 
-                                         batch_size=batch_size,
-                                         device=device,
-                                         train=False,
-                                         sort_key=lambda x: len(x.smiles),
-                                         sort_within_batch=False,
-                                         repeat=False)
+        test_iter = BucketIterator(test, 
+                                   batch_size=batch_size, 
+                                   device=device, 
+                                   train=False, 
+                                   sort_key=lambda x: len(x.smiles), 
+                                   sort_within_batch=False, 
+                                   repeat=False)
 
 
 
