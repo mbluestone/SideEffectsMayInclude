@@ -454,6 +454,7 @@ def evaluate_model(model,
     running_roc_auc = 0.0
 
     all_labels = np.array([])
+    all_probs = np.array([])
     all_predictions = np.array([])
 
     # loop through batched validation data
@@ -497,9 +498,11 @@ def evaluate_model(model,
 
         if all_labels.size == 0:
             all_labels = batch_labels
+            all_probs = batch_probs
             all_predictions = batch_predictions
         else:
             all_labels = np.vstack((all_labels,batch_labels))
+            all_probs = np.vstack((all_probs,batch_probs))
             all_predictions = np.vstack((all_predictions,batch_predictions))
 
     # calculate validation metrics for the epoch
@@ -519,7 +522,9 @@ def evaluate_model(model,
     # print confusion matrices
     for i,label in enumerate(labels):
         print('\n',label,':\n')
-        print(confusion_matrix(all_train_labels[:,i],all_train_predictions[:,i]))
+        print(confusion_matrix(all_labels[:,i],all_predictions[:,i]))
+        
+    pd.DataFrame(all_probs,columns=labels).to_csv("test_predicitions.csv")
     
 
     # log metrics in log csv
