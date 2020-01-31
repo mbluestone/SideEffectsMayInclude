@@ -233,9 +233,6 @@ def train_helper(model: torch.nn.Module,
         # loop through batched training data
         for inputs in dataloaders['train']:
             
-            # pull out batch labels
-            train_batch_labels = inputs.y.cpu().numpy()
-            
             # send to device
             inputs.y = inputs.y.to(device)
             inputs.x = inputs.x.to(device)
@@ -252,6 +249,9 @@ def train_helper(model: torch.nn.Module,
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)
+                
+                # pull out batch labels
+                train_batch_labels = inputs.y.cpu().numpy()
                 
                 train_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
                 print(train_batch_probs)
@@ -333,9 +333,6 @@ def train_helper(model: torch.nn.Module,
         # loop through batched validation data
         for inputs in dataloaders['val']:
             
-            # pull out batch labels
-            val_batch_labels = inputs.y.cpu().numpy()
-            
             # send to device
             inputs.y = inputs.y.to(device)
             inputs.x = inputs.x.to(device)
@@ -350,6 +347,9 @@ def train_helper(model: torch.nn.Module,
                 
                 # calculate loss
                 val_loss = criterion(out, inputs.y)
+                
+                # pull out batch labels
+                val_batch_labels = inputs.y.cpu().numpy()
                 
                 val_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
                 print(val_batch_probs)
