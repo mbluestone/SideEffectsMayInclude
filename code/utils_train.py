@@ -22,18 +22,8 @@ from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_scor
 
 ########################## MODEL CREATION ###########################
 
-def create_model(model_type: str,
-                 num_node_features: int,
-                 num_classes: int,
-                 graph_layers_sizes: list,
-                 vocab_size: int,
-                 num_lstm_layers: int, 
-                 nlp_embed_dim: int,
-                 nlp_output_dim: int,
-                 linear_layers_sizes: list,
-                 dropout_rate: float,
-                 device: torch.device, 
-                 pretrain_load_path: str = None) -> FullModel:
+def create_model(model_params_dict,
+                 device: torch.device) -> FullModel:
     """
     Instantiate the model.
     Args:
@@ -46,29 +36,74 @@ def create_model(model_type: str,
 
     # make sure a correct model type is requested
     possible_models = ['graph', 'nlp', 'combo']
-    assert model_type.lower() in possible_models, f"Model type must be one of {possible_models} not {model_type}"
+    assert model_params_dict['model_type'].lower() in possible_models, 
+    f"Model type must be one of {possible_models} not {model_params_dict['model_type']}"
         
     # create the model
-    model = FullModel(model_type=model_type, 
-                      num_classes=num_classes, 
-                      num_node_features=num_node_features, 
-                      graph_layers_sizes=graph_layers_sizes, 
-                      vocab_size=vocab_size, 
-                      num_lstm_layers=num_lstm_layers, 
-                      nlp_embed_dim=nlp_embed_dim, 
-                      nlp_output_dim=nlp_output_dim, 
-                      linear_layers_sizes=linear_layers_sizes, 
-                      dropout_rate=dropout_rate)
+    if not model_params_dict['pretrain_load_path']:
+        model = FullModel(model_type=model_params_dict['model_type'], 
+                          num_classes=model_params_dict['num_classes'], 
+                          num_node_features=model_params_dict['num_node_features'], 
+                          graph_layers_sizes=model_params_dict['graph_layers_sizes'],  
+                          num_lstm_layers=model_params_dict['num_lstm_layers'], 
+                          nlp_embed_dim=model_params_dict['nlp_embed_dim'], 
+                          nlp_output_dim=model_params_dict['nlp_output_dim'], 
+                          linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
+                          dropout_rate=model_params_dict['dropout_rate'],
+                          vocab_size=model_params_dict['vocab_size'])
     
 
     # if loading a pretrained model from a state dict
-    if pretrain_load_path:
-        if torch.cuda.is_available():
-            ckpt = torch.load(f=pretrain_load_path)
-        else:
-            ckpt = torch.load(f=pretrain_load_path, 
-                              map_location=torch.device('cpu'))
-        model.load_state_dict(state_dict=ckpt["model_state_dict"])
+    else:
+        
+        ckpt = torch.load(f=pretrain_load_path)
+        model_params_dict = ckpt["model_params_dict"]    
+        model = FullModel(model_type=model_params_dict['model_type'], 
+                          num_classes=model_params_dict['num_classes'], 
+                          num_node_features=model_params_dict['num_node_features'], 
+                          graph_layers_sizes=model_params_dict['graph_layers_sizes'],  
+                          num_lstm_layers=model_params_dict['num_lstm_layers'], 
+                          nlp_embed_dim=model_params_dict['nlp_embed_dim'], 
+                          nlp_output_dim=model_params_dict['nlp_output_dim'], 
+                          linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
+                          dropout_rate=model_params_dict['dropout_rate'],
+                          vocab_size=model_params_dict['vocab_size'])
+
+        model.load_state_dict(state_dict=ckpt["model_state_dict"], 
+                              map_location=device)
+        
+    # transfer model to cpu or gpu
+    model = model.to(device=device)
+        
+    return model
+
+def load_model(load_path: dict,
+               device: torch.device) -> FullModel:
+    """
+    Instantiate the model.
+    Args:
+        num_graph_layers: Number of layers to use in the model.
+        num_classes: Number of classes in the dataset.
+        pretrain_load_path: Use pretrained weights.
+    Returns:
+        The instantiated model with the requested parameters.
+    """
+
+    ckpt = torch.load(f=load_path)
+    model_params_dict = ckpt["model_params_dict"]    
+    model = FullModel(model_type=model_params_dict['model_type'], 
+                      num_classes=model_params_dict['num_classes'], 
+                      num_node_features=model_params_dict['num_node_features'], 
+                      graph_layers_sizes=model_params_dict['graph_layers_sizes'],  
+                      num_lstm_layers=model_params_dict['num_lstm_layers'], 
+                      nlp_embed_dim=model_params_dict['nlp_embed_dim'], 
+                      nlp_output_dim=model_params_dict['nlp_output_dim'], 
+                      linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
+                      dropout_rate=model_params_dict['dropout_rate'],
+                      vocab_size=model_params_dict['vocab_size'])
+
+    model.load_state_dict(state_dict=ckpt["model_state_dict"], 
+                          map_location=device)
         
     # transfer model to cpu or gpu
     model = model.to(device=device)
@@ -77,13 +112,12 @@ def create_model(model_type: str,
 
 ################################## MODEL TRAINING ##################################
 
-def print_parameters(config):
+def get_parameters(config):
     
-    params = [param for param in dir(config) if "__" not in param]
-    model_training_params_dict = dict.fromkeys()
-    for param in params: 
-            model_training_params_dict[param] = getattr(config,param)
-            print(f'{param}: {getattr(config,param)}')
+    model_training_params_dict = {param: getattr(config,param) for param in dir(config) if "__" not in param}
+    
+    for param, value in model_training_params_dict.item():
+        print(f'{param}: {value}')
             
     return model_training_params_dict
 
@@ -122,21 +156,13 @@ def train_model(data_dir: str,
           f"num val molecules {dataset_sizes['val']}\n"
           f"CUDA is_available: {torch.cuda.is_available()}")
     
+    # create a dictionary of the model training parameters
+    model_training_params_dict = get_parameters(config)
+    model_training_params_dict['vocab_size'] = vocab_size
+    
     # instantiate model
-    model = create_model(model_type=model_type,
-                         num_node_features=num_node_features,
-                         num_classes=len(labels),
-                         graph_layers_sizes=graph_layers_sizes,
-                         vocab_size=vocab_size,
-                         num_lstm_layers=num_lstm_layers, 
-                         nlp_embed_dim=nlp_embed_dim,
-                         nlp_output_dim=nlp_output_dim,
-                         linear_layers_sizes=linear_layers_sizes,
-                         dropout_rate=dropout_rate,
-                         pretrain_load_path=pretrain_load_path,
+    model = create_model(model_params_dict=model_training_params_dict,
                          device=device)
-    
-    
     
     # instantiate optimizer
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -188,7 +214,8 @@ def train_helper(model: torch.nn.Module,
                  criterion: torch.nn.modules.loss, 
                  log_file: str, 
                  log_csv: str,
-                 writer):
+                 writer,
+                 model_training_params_dict: dict):
     '''
     Helper function for training model
     
@@ -202,8 +229,6 @@ def train_helper(model: torch.nn.Module,
         log_file: str, 
         log_csv: str
     '''
-
-    model_training_params_dict = get_parameters(config)
     
     print_cms = False
     # start tracking time
@@ -431,7 +456,7 @@ def train_helper(model: torch.nn.Module,
     torch.save(obj={"model_state_dict": model.state_dict(), 
                     "optimizer_state_dict": optimizer.state_dict(), 
                     "scheduler_state_dict": scheduler.state_dict(),
-                    "model_training_params_dict": model_training_params_dict}, 
+                    "model_params_dict": model_training_params_dict}, 
                     f="trained_models/{}_model.pt".format(model_type))
     
     # Print training information at the end.
@@ -467,17 +492,7 @@ def evaluate_model(model_path,
                                                                                                    training=False)
     
     
-    model = create_model(model_type=model_type,
-                         num_node_features=num_node_features,
-                         num_classes=len(labels),
-                         graph_layers_sizes=graph_layers_sizes,
-                         vocab_size=vocab_size,
-                         num_lstm_layers=num_lstm_layers, 
-                         nlp_embed_dim=nlp_embed_dim,
-                         nlp_output_dim=nlp_output_dim,
-                         linear_layers_sizes=linear_layers_sizes,
-                         dropout_rate=dropout_rate,
-                         pretrain_load_path=model_path,
+    model = create_model(model_params_dict=model_params_dict,
                          device=device)
     
     model = model.to(device=device)
