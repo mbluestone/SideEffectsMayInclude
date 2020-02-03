@@ -44,14 +44,14 @@ def parse_drugbank_xml(file_name: str,
         '''
 
         # make sure soup is main drug info
-        if drug_soup.find("atc-codes"):
+        if drug_soup.find("description"):
 
             # extract ATC code
-            if drug_soup.find("atc-codes").find("atc-code"):
-                atc_code = drug_soup.find("atc-codes").find("atc-code").get("code")
-            else:
-                atc_code = None
-
+            atc_code = None
+            if drug_soup.find("atc-codes"):
+                if drug_soup.find("atc-codes").find("atc-code"):
+                    atc_code = drug_soup.find("atc-codes").find("atc-code").get("code")
+                
             # if filtering by SIDER data
             if filter_sider:
                 
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     data = parse_drugbank_xml(file_name = args.input_file, 
                               atc_codes = atc_codes, 
                               mp = args.mp,
-                              filter_sider = arg.filter_sider)
+                              filter_sider = args.filter_sider)
     
     if args.save_path:
         data.to_csv(args.save_path)
