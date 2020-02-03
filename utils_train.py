@@ -79,9 +79,13 @@ def create_model(model_type: str,
 
 def print_parameters(config):
     
-    for param in dir(config): 
-        if "__" not in param:
+    params = [param for param in dir(config) if "__" not in param]
+    model_training_params_dict = dict.fromkeys()
+    for param in params: 
+            model_training_params_dict[param] = getattr(config,param)
             print(f'{param}: {getattr(config,param)}')
+            
+    return model_training_params_dict
 
 def train_model(data_dir: str,
                 model_type: str,
@@ -199,7 +203,7 @@ def train_helper(model: torch.nn.Module,
         log_csv: str
     '''
 
-    print_parameters(config)
+    model_training_params_dict = get_parameters(config)
     
     print_cms = False
     # start tracking time
@@ -426,7 +430,8 @@ def train_helper(model: torch.nn.Module,
     # save model
     torch.save(obj={"model_state_dict": model.state_dict(), 
                     "optimizer_state_dict": optimizer.state_dict(), 
-                    "scheduler_state_dict": scheduler.state_dict()}, 
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "model_training_params_dict": model_training_params_dict}, 
                     f="trained_models/{}_model.pt".format(model_type))
     
     # Print training information at the end.
