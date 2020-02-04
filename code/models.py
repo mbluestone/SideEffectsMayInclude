@@ -3,6 +3,8 @@ from torch.nn import Linear, Dropout, BCEWithLogitsLoss, Softmax, ModuleList, LS
 from torch_geometric.nn import GCNConv, global_add_pool
 import torch.nn.functional as F
 
+import copy
+
 ############################ MODEL CLASSES ############################
 
 class GraphNet(torch.nn.Module):
@@ -41,22 +43,19 @@ class NLPNet(torch.nn.Module):
         self.rnn = LSTM(emb_dim, 
                         output_dim//2, 
                         num_layers=1, 
-                        bidirectional=True)
+                        bidirectional=True,
+                        batch_first=True)
 
     def forward(self, data):
         
-        text = data.x
-        
-        output, (hidden, cell) = self.rnn(self.embedding(text))
+        # get embedding and pass through LSTM
+        output, (hidden, cell) = self.rnn(self.embedding(data.text))
 
         #concat the final forward and backward hidden layers and apply dropout
         hidden = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1)
             
         return hidden.squeeze(0)
 
-        #hdn, _ = self.rnn(self.embedding(x))
-        #feature = hdn[-1, :, :]
-        #return feature
     
 class FullModel(torch.nn.Module):
     def __init__(self, 
@@ -65,7 +64,6 @@ class FullModel(torch.nn.Module):
                  num_node_features: int,  
                  graph_layers_sizes: list,
                  vocab_size: int,
-                 num_lstm_layers: int, 
                  nlp_embed_dim: int,
                  nlp_output_dim: int,
                  linear_layers_sizes: list,
@@ -85,6 +83,7 @@ class FullModel(torch.nn.Module):
         elif self.model_type == 'combo':
             linear_layer_input = graph_layers_sizes[-1]+nlp_output_dim
             
+        linear_layers_sizes = copy.copy(linear_layers_sizes)
         linear_layers_sizes.insert(0,linear_layer_input)
         self.linear_layers = []
         for i in range(len(linear_layers_sizes) - 1):
@@ -98,14 +97,15 @@ class FullModel(torch.nn.Module):
             x = self.graph_net(data)
         elif self.model_type == 'nlp':
             x = self.nlp_net(data)
-        elif self.model_type == 'nlp':
-            x = self.nlp_net(data)
+        elif self.model_type == 'combo':
+            text_vec = self.nlp_net(data)
+            graph_vec = self.graph_net(data)
+            x = torch.cat([text_vec,graph_vec],1)
 
         for layer in self.linear_layers:
             x = self.dropout(F.relu(layer(x)))
         preds = self.predictor(x)
         return preds
-
     
     
 class GoogleGraphNet(torch.nn.Module):
