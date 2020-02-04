@@ -17,9 +17,12 @@ from torch_geometric.data import Data, Dataset, DataLoader
 
 from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
+path_to_atom_info = '../raw_data/atom_info.txt'
+
 def load_raw_data(path):
     '''
-    Custom data loading function, depends on format of saved data
+    Custom data loading function specific for my preprocessed dataset, 
+    depends on format of saved data
     '''
     
     data = pd.read_csv(path)
@@ -96,9 +99,91 @@ def get_pos_weights(labels):
                for i in range(labels.shape[1])]
     return torch.tensor(weights)
 
-def generate_ngrams(x,n):
-    n_grams = [''.join(n_gram) for n_gram in list(zip(*[x[i:] for i in range(n)]))]
-    return n_grams
+def generate_bigrams(x):
+    bi_grams = [''.join(bi_grams) for bi_grams in list(zip(*[x[i:] for i in range(2)]))]
+    return bi_grams
+
+def smiles_to_tensor(smiles,
+                     stoi_dict):
+    smiles_tensor = torch.tensor([stoi_dict[s] for s in train[0].smiles],
+                                dtype=torch.long)
+    return smiles_tensor
+
+def pad_tensor(smiles_tensor,
+               max_length):
+    if len(smiles_tensor)>max_length:
+        padded_tensor = smiles_tensor[:max_length]
+    elif len(smiles_tensor)<max_length:
+        padded_tensor = torch.cat([smiles_tensor,torch.ones(max_length-len(smiles_tensor), 
+                                                           dtype=torch.long)])
+    else:
+        padded_tensor = smiles_tensor
+    return padded_tensor
+
+def process_smiles_for_nlp(smiles,
+                           stoi_dict,
+                           max_length):
+    
+    bigram_smiles = generate_bigrams(smiles)
+    tensor_smiles = smiles_to_tensor(bigram_smiles,stoi_dict)
+    padded_smiles = pad_tensor(tensor_smiles,max_length)
+    
+    return padded_smiles
+
+def get_graph_and_text_data(data_dir: str,
+                            batch_size: int, 
+                            training: bool):
+    
+    if training:
+        phase_names = ['train','val']
+    else:
+        phase_names = ['test']
+    
+    # get text vocab
+    if training:
+        tokenizer = lambda x: generate_bigrams(x)
+        TEXT = Field(sequential=True, tokenize=tokenizer, lower=True)
+        LABEL = Field(sequential=False, use_vocab=False)
+
+        datafields = [("smiles", TEXT)]
+        datafields.extend([(label, LABEL) for label in labels])
+        
+        train = TabularDataset(path=data_dir+'train.csv',
+                               format='csv',
+                               skip_header=True,
+                               fields=datafields)
+
+        TEXT.build_vocab(train)
+        
+        
+    # if testing
+    else:
+        
+        # load TEXT field from 
+        with open("trained_models/TEXT.Field","rb")as f:
+             TEXT=dill.load(f)
+                
+    # get size of vocabulary            
+    vocab_size = len(TEXT.vocab)
+        
+    # load datasets
+    datasets = {x: MoleculeDataset(Xy=load_raw_data(path_join(data_dir, x+'.csv')),
+                                   stoi_dict=TEXT.vocab.stoi,
+                                   max_text_length=200)
+                for x in phase_names}
+
+    # get number of features for the nodes
+    num_node_features = len(datasets[phase_names[0]][0].x[0])
+        
+    # create dataloaders
+    dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
+                   for x in phase_names}
+
+    # get the size of each dataset
+    dataset_sizes = {x: len(datasets[x]) for x in phase_names}
+    
+    return dataloaders, dataset_sizes, num_node_features, vocab_size
+    
 
 def get_graph_data(data_dir: str, 
                    batch_size: int, 
@@ -130,13 +215,12 @@ def get_text_data(data_dir: str,
                   device: torch.device,
                   batch_size: int,
                   labels: list,
-                  ngram: int,
                   training: bool):
     
-    tokenizer = lambda x: generate_ngrams(x,ngram)
+    tokenizer = lambda x: generate_bigrams(x)
 
     dataset_sizes = dict()
-    dataloaders=dict()
+    dataloaders = dict()
     if training:
         
         TEXT = Field(sequential=True, tokenize=tokenizer, lower=True)
@@ -155,7 +239,7 @@ def get_text_data(data_dir: str,
         TEXT.build_vocab(train)
         vocab_size = len(TEXT.vocab)
         
-        with open("trained_models/TEXT.Field","wb")as f:
+        with open("../trained_models/TEXT.Field","wb")as f:
              dill.dump(TEXT,f)
     
         dataset_sizes['train'] = len(train)
@@ -203,8 +287,6 @@ def get_text_data(data_dir: str,
                                    sort_within_batch=False, 
                                    repeat=False)
 
-
-
     
         dataloaders['test'] = TextBatchWrapper(test_iter, 
                                                "smiles", 
@@ -219,7 +301,6 @@ def load_data_for_model(data_dir: str,
                         device: torch.device, 
                         model_type: str, 
                         batch_size: int, 
-                        ngram: int,
                         training: bool):
     
     # get positive weights and labels
@@ -244,7 +325,6 @@ def load_data_for_model(data_dir: str,
                                                                                   device, 
                                                                                   batch_size, 
                                                                                   labels, 
-                                                                                  ngram, 
                                                                                   training)
         
     return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
@@ -257,7 +337,7 @@ class Molecule(Data):
     def __init__(self, smiles_string: str, y_list: list):
         """
         Args:
-            smiles_string (string): SMILES fro the molecule.
+            smiles_string (string): SMILES for the molecule.
             y_list (list): list of multilabels.
         """
 
@@ -274,7 +354,7 @@ class Molecule(Data):
                                                    dtype=torch.long),
                          y = torch.tensor(y_list, dtype=torch.float32))
         
-        # remove graph attribute, necessary to inhereit from superclass
+        # remove graph attribute, necessary to inherit from superclass
         del self.graph
     
     def extract_features(self):
@@ -298,7 +378,7 @@ class Molecule(Data):
     
     def convert_atom_to_vector(self,atom):
         
-        atom_dict = pd.read_csv('raw_data/atom_info.txt',sep=',').set_index('Symbol')['AtomicNumber'].to_dict()
+        atom_dict = pd.read_csv(path_to_atom_info,sep=',').set_index('Symbol')['AtomicNumber'].to_dict()
         feature_vector = np.array([])
         feature_vector = np.append(feature_vector,int(atom_dict[atom['element']]))
         feature_vector = np.append(feature_vector,atom['charge'])
@@ -330,7 +410,11 @@ class Molecule(Data):
 class MoleculeDataset():
     """Molecules dataset."""
 
-    def __init__(self, Xy, transform=None):
+    def __init__(self, 
+                 Xy, 
+                 transform=None, 
+                 stoi_dict=None,
+                 max_text_length=None):
         """
         Args:
             X (NumPy matrix or Pandas DataFrame, n_samples*n_features): SMILES data.
@@ -341,6 +425,8 @@ class MoleculeDataset():
         self.X = Xy[0]
         self.y = Xy[1]
         self.transform = transform
+        self.stoi_dict = stoi_dict
+        self.max_text_length = max_text_length
         if isinstance(self.y, pd.DataFrame):
             self.labels = self.y.columns.tolist()
             self.y = np.matrix(self.y)
@@ -357,6 +443,10 @@ class MoleculeDataset():
 
         if self.transform:
             molecule = self.transform(molecule)
+            
+        molecule.text = process_smiles_for_nlp(self.X[idx], 
+                                               self.stoi_dict, 
+                                               self.max_text_length).view(1,-1)
 
         return molecule
     
@@ -366,17 +456,17 @@ class MoleculeDataset():
     def _process(self):
         pass
     
-    def get(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
+#     def get(self, idx):
+#         if torch.is_tensor(idx):
+#             idx = idx.tolist()
             
-        molecule = Molecule(self.X[idx],
-                           self.y[idx].tolist())
+#         molecule = Molecule(self.X[idx],
+#                            self.y[idx].tolist())
 
-        if self.transform:
-            molecule = self.transform(molecule)
+#         if self.transform:
+#             molecule = self.transform(molecule)
 
-        return molecule
+#         return molecule
 
 class TextDataObject(object):
     pass
@@ -392,7 +482,7 @@ class TextBatchWrapper:
         for batch in self.dl:
             
             data = TextDataObject()
-            data.x = getattr(batch, self.x_var)
+            data.text = getattr(batch, self.x_var)
             if self.y_vars is not None:
                 data.y = torch.cat([getattr(batch, feat).unsqueeze(1) 
                                     for feat in self.y_vars], dim=1).float()
