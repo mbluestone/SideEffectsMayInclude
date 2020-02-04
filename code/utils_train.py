@@ -290,9 +290,9 @@ def train_helper(model: torch.nn.Module,
               f'F1 = {epoch_train_f1}, '
               f'ROC_AUC = {epoch_train_roc_auc}') 
         
-        for param in model.parameters():
-            print(param.data)
-            break
+#         for param in model.parameters():
+#             print(param.data)
+#             break
         
         # print confusion matrices
         if print_cms:

@@ -25,4 +25,4 @@ batch_size=64
 
 # logging
 log_file=None
-log_csv = 'logs/nlp_test_log.csv'
+log_csv = 'logs/combo_log.csv'
