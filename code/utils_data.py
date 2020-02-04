@@ -105,7 +105,7 @@ def generate_bigrams(x):
 
 def smiles_to_tensor(smiles,
                      stoi_dict):
-    smiles_tensor = torch.tensor([stoi_dict[s] for s in train[0].smiles],
+    smiles_tensor = torch.tensor([stoi_dict[s] for s in smiles],
                                 dtype=torch.long)
     return smiles_tensor
 
@@ -131,7 +131,8 @@ def process_smiles_for_nlp(smiles,
     return padded_smiles
 
 def get_graph_and_text_data(data_dir: str,
-                            batch_size: int, 
+                            labels: list,
+                            batch_size: int,
                             training: bool):
     
     if training:
@@ -326,6 +327,14 @@ def load_data_for_model(data_dir: str,
                                                                                   batch_size, 
                                                                                   labels, 
                                                                                   training)
+    
+    # if combo model
+    elif model_type == 'combo':
+        
+        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_and_text_data(data_dir,
+                                                                                            labels,
+                                                                                            batch_size,
+                                                                                            training)
         
     return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
 

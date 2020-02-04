@@ -64,7 +64,6 @@ class FullModel(torch.nn.Module):
                  num_node_features: int,  
                  graph_layers_sizes: list,
                  vocab_size: int,
-                 num_lstm_layers: int, 
                  nlp_embed_dim: int,
                  nlp_output_dim: int,
                  linear_layers_sizes: list,

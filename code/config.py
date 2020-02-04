@@ -1,14 +1,14 @@
-data_dir='processed_data/sider/'
+# directory to find the data
+data_dir='../processed_data/sider/'
 
 # model creation parameters
-model_type='text'
+model_type='combo'
 pretrain_load_path=None
 
 # graph model parameters
 graph_layers_sizes=[15,20,27,36]
 
 # nlp model parameters
-num_lstm_layers=2
 nlp_embed_dim=100
 nlp_output_dim=50
 
