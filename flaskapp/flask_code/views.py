@@ -6,11 +6,10 @@ from flask_code import app
 # import pandas as pd
 # import psycopg2
 
-
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('master.html')
+    return render_template('index.html')
 
 
 @app.route('/go')
@@ -20,3 +19,4 @@ def go():
         'go.html',
         query=query,
     )
+
