@@ -103,11 +103,7 @@ def train_model():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size,pad_idx = load_data_for_model(model_params_dict['data_dir'], 
-                                                                                                    device, 
-                                                                                                    model_params_dict['model_type'], 
-                                                                                                    model_params_dict['batch_size'], 
-                                                                                                    training=True)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size,pad_idx = load_data_for_model(model_params_dict,device,training=True)
     
     print(f"num labels: {len(labels)}\n"
           f"num train molecules {dataset_sizes['train']}\n"
@@ -221,9 +217,8 @@ def train_helper(model: torch.nn.Module,
             # send to device
             inputs.y = inputs.y.to(device)
             inputs.x = inputs.x.to(device)
-            if 'edge_index' in dir(inputs):
-                inputs.edge_index = inputs.edge_index.to(device)
-                inputs.batch = inputs.batch.to(device)
+            inputs.edge_index = inputs.edge_index.to(device)
+            inputs.batch = inputs.batch.to(device)
 
             # 
             optimizer.zero_grad()
@@ -240,6 +235,7 @@ def train_helper(model: torch.nn.Module,
                 
                 train_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
                 train_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
+                #print(train_batch_probs)
                 
                 # backpropagate
                 train_loss.backward()
@@ -294,15 +290,17 @@ def train_helper(model: torch.nn.Module,
               f'F1 = {epoch_train_f1}, '
               f'ROC_AUC = {epoch_train_roc_auc}') 
         
-#         for param in model.parameters():
-#             print(param.data)
-#             break
-        
         # print confusion matrices
         if print_cms:
             for i,label in enumerate(labels):
                 print('\n',label,':\n')
                 print(confusion_matrix(all_train_labels[:,i],all_train_predictions[:,i]))
+                
+        # empty cuda cache
+        if torch.cuda.is_available(): torch.cuda.empty_cache()
+
+        # step scheduler
+        scheduler.step()
 
 #         # Validation
 #         model.eval()
@@ -409,13 +407,14 @@ def train_helper(model: torch.nn.Module,
 #             epoch_val_loss, epoch_val_acc, epoch_val_f1, epoch_train_roc_auc).split(','))
 
     #writer.close()
+    print(train_batch_probs)
     
     # save model
     torch.save(obj={"model_state_dict": model.state_dict(), 
                     "optimizer_state_dict": optimizer.state_dict(), 
                     "scheduler_state_dict": scheduler.state_dict(),
                     "model_params_dict": model_params_dict}, 
-                    f="trained_models/{}_model.pt".format(model_params_dict['model_type']))
+                    f="../trained_models/{}_model.pt".format(model_params_dict['model_type']))
     
     # Print training information at the end.
     print(f"\nTraining complete in "

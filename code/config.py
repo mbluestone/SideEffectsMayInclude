@@ -1,5 +1,6 @@
 # directory to find the data
-data_dir='../processed_data/sider/'
+data_dir='../processed_data/sider/all_side_effects/'
+label='blood pressure increased'
 
 # model creation parameters
 model_type='combo'
@@ -17,8 +18,8 @@ linear_layers_sizes=[100,200,100]
 
 # model training parameters
 num_epochs=50
-learning_rate=0.1
-learning_rate_decay=0.9 
+learning_rate=0.0001
+learning_rate_decay=0.95 
 weight_decay=1e-4 
 dropout_rate=0.4
 batch_size=64

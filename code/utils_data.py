@@ -19,7 +19,7 @@ from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
 path_to_atom_info = '../raw_data/atom_info.txt'
 
-def load_raw_data(path):
+def load_raw_data(path,label=None):
     '''
     Custom data loading function specific for my preprocessed dataset, 
     depends on format of saved data
@@ -28,6 +28,9 @@ def load_raw_data(path):
     data = pd.read_csv(path)
     X = data.smiles
     y = data.iloc[:,1:]
+    
+    if label:
+        y = y.loc[:,label]
     
     return X, y
 
@@ -130,9 +133,8 @@ def process_smiles_for_nlp(smiles,
     
     return padded_smiles
 
-def get_graph_and_text_data(data_dir: str,
+def get_graph_and_text_data(model_params_dict: dict,
                             labels: list,
-                            batch_size: int,
                             training: bool):
     
     if training:
@@ -149,7 +151,7 @@ def get_graph_and_text_data(data_dir: str,
         datafields = [("smiles", TEXT)]
         datafields.extend([(label, LABEL) for label in labels])
         
-        train = TabularDataset(path=data_dir+'train.csv',
+        train = TabularDataset(path=model_params_dict['data_dir']+'train.csv',
                                format='csv',
                                skip_header=True,
                                fields=datafields)
@@ -161,14 +163,15 @@ def get_graph_and_text_data(data_dir: str,
     else:
         
         # load TEXT field from 
-        with open("trained_models/TEXT.Field","rb")as f:
+        with open("../trained_models/TEXT.Field","rb")as f:
              TEXT=dill.load(f)
                 
     # get size of vocabulary            
     vocab_size = len(TEXT.vocab)
         
     # load datasets
-    datasets = {x: MoleculeDataset(Xy=load_raw_data(path_join(data_dir, x+'.csv')),
+    datasets = {x: MoleculeDataset(Xy=load_raw_data(path_join(model_params_dict['data_dir'], x+'.csv'),
+                                                    label=model_params_dict['label']),
                                    stoi_dict=TEXT.vocab.stoi,
                                    max_text_length=200)
                 for x in phase_names}
@@ -177,7 +180,7 @@ def get_graph_and_text_data(data_dir: str,
     num_node_features = len(datasets[phase_names[0]][0].x[0])
         
     # create dataloaders
-    dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) 
+    dataloaders = {x: DataLoader(datasets[x], batch_size=model_params_dict['batch_size'], shuffle=True, num_workers=4) 
                    for x in phase_names}
 
     # get the size of each dataset
@@ -187,157 +190,30 @@ def get_graph_and_text_data(data_dir: str,
     pad_idx = torch.tensor(TEXT.vocab.stoi[TEXT.pad_token])
     
     return dataloaders, dataset_sizes, num_node_features, vocab_size, pad_idx
-    
 
-def get_graph_data(data_dir: str, 
-                   batch_size: int, 
-                   training: bool):
-    if training:
-        phase_names = ['train','val']
-    else:
-        phase_names = ['test']
-    
-    # load datasets
-    datasets = {x: MoleculeDataset(load_raw_data(path_join(data_dir, x+'.csv')))
-                for x in phase_names}
-
-    # get number of features for the nodes
-    num_node_features = len(datasets[phase_names[0]][0].x[0])
-
-    # create dataloaders
-    dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=4) 
-                   for x in phase_names}
-
-    # get the size of each dataset
-    dataset_sizes = {x: len(datasets[x]) for x in phase_names}
-
-    vocab_size = 0
-    
-    return dataloaders, dataset_sizes, num_node_features, vocab_size
-
-def get_text_data(data_dir: str,
-                  device: torch.device,
-                  batch_size: int,
-                  labels: list,
-                  training: bool):
-    
-    tokenizer = lambda x: generate_bigrams(x)
-
-    dataset_sizes = dict()
-    dataloaders = dict()
-    if training:
-        
-        TEXT = Field(sequential=True, tokenize=tokenizer, lower=True)
-        LABEL = Field(sequential=False, use_vocab=False)
-
-        datafields = [("smiles", TEXT)]
-        datafields.extend([(label, LABEL) for label in labels])
-        
-        train, val = TabularDataset.splits(path=data_dir,
-                                         train='train.csv', 
-                                         validation="val.csv", 
-                                         format='csv', 
-                                         skip_header=True, 
-                                         fields=datafields)
-
-        TEXT.build_vocab(train)
-        vocab_size = len(TEXT.vocab)
-        
-        with open("../trained_models/TEXT.Field","wb")as f:
-             dill.dump(TEXT,f)
-    
-        dataset_sizes['train'] = len(train)
-        dataset_sizes['val'] = len(val)
-
-        train_iter, val_iter = BucketIterator.splits((train, val), 
-                                                     batch_sizes=(batch_size, batch_size),
-                                                     device=device,
-                                                     sort_key=lambda x: len(x.smiles),
-                                                     sort_within_batch=False,
-                                                     repeat=False)
-
-
-
-    
-        dataloaders['train'] = TextBatchWrapper(train_iter, "smiles", 
-                                                labels)
-        dataloaders['val'] = TextBatchWrapper(val_iter, "smiles", 
-                                              labels)
-    # if testing
-    else:
-        
-        # load TEXT field from 
-        with open("trained_models/TEXT.Field","rb")as f:
-             TEXT=dill.load(f)
-        LABEL = Field(sequential=False, use_vocab=False)
-
-        datafields = [("smiles", TEXT)]
-        datafields.extend([(label, LABEL) for label in labels])
-                
-        vocab_size = len(TEXT.vocab)
-        
-        test = TabularDataset(path=path_join(data_dir+'test.csv'),
-                              format='csv', 
-                              skip_header=True, 
-                              fields=datafields)
-    
-        dataset_sizes['test'] = len(test)
-
-        test_iter = BucketIterator(test, 
-                                   batch_size=batch_size, 
-                                   device=device, 
-                                   train=False, 
-                                   sort_key=lambda x: len(x.smiles), 
-                                   sort_within_batch=False, 
-                                   repeat=False)
-
-    
-        dataloaders['test'] = TextBatchWrapper(test_iter, 
-                                               "smiles", 
-                                               labels)
-
-    # get number of features for the nodes
-    num_node_features = 0
-    
-    return dataloaders, dataset_sizes, num_node_features, vocab_size
-
-def load_data_for_model(data_dir: str, 
+def load_data_for_model(model_params_dict: dict, 
                         device: torch.device, 
-                        model_type: str, 
-                        batch_size: int, 
                         training: bool):
     
     # get positive weights and labels
     if training:
-        labels_df = load_raw_data(path_join(data_dir,'train.csv'))[1]
+        labels_df = load_raw_data(path_join(model_params_dict['data_dir'],'train.csv'), 
+                                  label=model_params_dict['label'])[1]
     else:
-        labels_df = load_raw_data(path_join(data_dir,'test.csv'))[1]
-    labels = labels_df.columns.tolist()
-    pos_weight = get_pos_weights(np.matrix(labels_df))
+        labels_df = load_raw_data(path_join(model_params_dict['data_dir'],'test.csv'), 
+                                  label=model_params_dict['label'])[1]
+        
+    if isinstance(labels_df,pd.DataFrame):
+        labels = labels_df.columns.tolist()
+        pos_weight = get_pos_weights(np.matrix(labels_df))
+    else: 
+        labels = [labels_df.name]
+        pos_weight = get_pos_weights(np.matrix(labels_df).reshape(-1,1))
     
-    # if graph model
-    if model_type == 'graph':
-        
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_data(data_dir, 
-                                                                                   batch_size, 
-                                                                                   training)
-        
-    # if nlp model
-    elif model_type == 'nlp':
-        
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_text_data(data_dir, 
-                                                                                  device, 
-                                                                                  batch_size, 
-                                                                                  labels, 
-                                                                                  training)
-    
-    # if combo model
-    elif model_type == 'combo':
-        
-        dataloaders, dataset_sizes, num_node_features, vocab_size, pad_idx = get_graph_and_text_data(data_dir,
-                                                                                            labels,
-                                                                                            batch_size,
-                                                                                            training)
+    # load and process data for model
+    dataloaders, dataset_sizes, num_node_features, vocab_size, pad_idx = get_graph_and_text_data(model_params_dict, 
+                                                                                                 labels, 
+                                                                                                 training)
         
     return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size, pad_idx
 
@@ -359,12 +235,17 @@ class Molecule(Data):
         self.graph = read_smiles(smiles_string)
         sys.stdout = sys.__stdout__
         
+        if isinstance(y_list,list):
+            y = torch.tensor(y_list, dtype=torch.float32)
+        else:
+            y = torch.tensor(y_list, dtype=torch.float32).view(1,-1)
+        
         # inherit superclass from torch-geometric
         super().__init__(x = torch.tensor(self.extract_features(), 
                                           dtype=torch.float),
                          edge_index = torch.tensor(self.graph_to_edge_index(), 
                                                    dtype=torch.long),
-                         y = torch.tensor(y_list, dtype=torch.float32))
+                         y = y)
         
         # remove graph attribute, necessary to inherit from superclass
         del self.graph
@@ -373,7 +254,7 @@ class Molecule(Data):
         
         all_feature_vectors = np.array([])
         
-        for atom_index in range(len(self.graph.nodes)):
+        for atom_index in [node for node,data in self.graph.nodes.items()]:
             
             atom = self.graph.nodes[atom_index]
             
@@ -442,6 +323,8 @@ class MoleculeDataset():
         if isinstance(self.y, pd.DataFrame):
             self.labels = self.y.columns.tolist()
             self.y = np.matrix(self.y)
+        if isinstance(self.y, pd.Series):
+            self.labels = self.y.name
 
     def __len__(self):
         return self.X.shape[0]
@@ -468,40 +351,4 @@ class MoleculeDataset():
     def _process(self):
         pass
     
-#     def get(self, idx):
-#         if torch.is_tensor(idx):
-#             idx = idx.tolist()
-            
-#         molecule = Molecule(self.X[idx],
-#                            self.y[idx].tolist())
-
-#         if self.transform:
-#             molecule = self.transform(molecule)
-
-#         return molecule
-
-class TextDataObject(object):
-    pass
-
-class ComboDataObject(object):
-    pass
     
-class TextBatchWrapper:
-    def __init__(self, dl, x_var, y_vars):
-        self.dl, self.x_var, self.y_vars = dl, x_var, y_vars
-        
-    def __iter__(self):
-        for batch in self.dl:
-            
-            data = TextDataObject()
-            data.text = getattr(batch, self.x_var)
-            if self.y_vars is not None:
-                data.y = torch.cat([getattr(batch, feat).unsqueeze(1) 
-                                    for feat in self.y_vars], dim=1).float()
-            else:
-                data.y = torch.zeros((1))
-
-            yield data
-
-    def __len__(self):
-        return len(self.dl)
