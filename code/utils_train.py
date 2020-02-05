@@ -118,6 +118,7 @@ def train_model():
     model_params_dict['vocab_size'] = vocab_size
     model_params_dict['num_node_features'] = num_node_features
     model_params_dict['num_classes'] = len(labels)
+    pad_idx = pad_idx.to(device)
     model_params_dict['pad_idx'] = pad_idx.to(device)
     
     # instantiate model
