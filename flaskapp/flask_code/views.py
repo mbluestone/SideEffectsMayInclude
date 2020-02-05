@@ -15,6 +15,10 @@ def index():
 @app.route('/go')
 def go():
     query = request.args.get('query', '')
+    
+    
+    
+    
     return render_template(
         'go.html',
         query=query,
