@@ -36,10 +36,11 @@ class NLPNet(torch.nn.Module):
     def __init__(self, 
                  vocab_size: int,
                  output_dim: int, 
-                 emb_dim: int):
+                 emb_dim: int,
+                 pad_idx):
         
         super(NLPNet, self).__init__() 
-        self.embedding = Embedding(vocab_size, emb_dim)
+        self.embedding = Embedding(vocab_size, emb_dim, padding_idx = pad_idx)
         self.rnn = LSTM(emb_dim, 
                         output_dim//2, 
                         num_layers=1, 
@@ -67,13 +68,14 @@ class FullModel(torch.nn.Module):
                  nlp_embed_dim: int,
                  nlp_output_dim: int,
                  linear_layers_sizes: list,
-                 dropout_rate: float):
+                 dropout_rate: float,
+                 pad_idx):
         
         super(FullModel, self).__init__()
         
         self.model_type = model_type.lower()
         self.graph_net = GraphNet(num_node_features,graph_layers_sizes)
-        self.nlp_net = NLPNet(vocab_size,nlp_output_dim,nlp_embed_dim)
+        self.nlp_net = NLPNet(vocab_size,nlp_output_dim,nlp_embed_dim,pad_idx)
         self.dropout = Dropout(dropout_rate)
         
         if self.model_type == 'graph':

@@ -182,8 +182,11 @@ def get_graph_and_text_data(data_dir: str,
 
     # get the size of each dataset
     dataset_sizes = {x: len(datasets[x]) for x in phase_names}
+   
+    # padding index
+    pad_idx = torch.tensor(TEXT.vocab.stoi[TEXT.pad_token])
     
-    return dataloaders, dataset_sizes, num_node_features, vocab_size
+    return dataloaders, dataset_sizes, num_node_features, vocab_size, pad_idx
     
 
 def get_graph_data(data_dir: str, 
@@ -331,12 +334,12 @@ def load_data_for_model(data_dir: str,
     # if combo model
     elif model_type == 'combo':
         
-        dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_and_text_data(data_dir,
+        dataloaders, dataset_sizes, num_node_features, vocab_size, pad_idx = get_graph_and_text_data(data_dir,
                                                                                             labels,
                                                                                             batch_size,
                                                                                             training)
         
-    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
+    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size, pad_idx
 
 class Molecule(Data):
     '''

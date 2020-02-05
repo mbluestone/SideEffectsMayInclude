@@ -48,7 +48,8 @@ def create_model(model_params_dict,
                           nlp_output_dim=model_params_dict['nlp_output_dim'], 
                           linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
                           dropout_rate=model_params_dict['dropout_rate'],
-                          vocab_size=model_params_dict['vocab_size'])
+                          vocab_size=model_params_dict['vocab_size'],
+                          pad_idx=model_params_dict['pad_idx'])
     
 
     # if loading a pretrained model from a state dict
@@ -64,7 +65,8 @@ def create_model(model_params_dict,
                           nlp_output_dim=model_params_dict['nlp_output_dim'], 
                           linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
                           dropout_rate=model_params_dict['dropout_rate'],
-                          vocab_size=model_params_dict['vocab_size'])
+                          vocab_size=model_params_dict['vocab_size'],
+                          pad_idx=model_params_dict['pad_idx'])
 
         model.load_state_dict(state_dict=ckpt["model_state_dict"], 
                               map_location=device)
@@ -101,7 +103,7 @@ def train_model():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features, vocab_size = load_data_for_model(model_params_dict['data_dir'], 
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size,pad_idx = load_data_for_model(model_params_dict['data_dir'], 
                                                                                                     device, 
                                                                                                     model_params_dict['model_type'], 
                                                                                                     model_params_dict['batch_size'], 
@@ -116,6 +118,7 @@ def train_model():
     model_params_dict['vocab_size'] = vocab_size
     model_params_dict['num_node_features'] = num_node_features
     model_params_dict['num_classes'] = len(labels)
+    model_params_dict['pad_idx'] = pad_idx.to(device)
     
     # instantiate model
     model = create_model(model_params_dict=model_params_dict,
