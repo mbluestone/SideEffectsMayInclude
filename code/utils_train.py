@@ -1,7 +1,7 @@
 # MolNet
 # Max Bluestone
 
-# Using a graph/NLP model to train and test.
+# Using a graph/text model to train and test.
 
 import config
 from utils_data import *
@@ -35,7 +35,7 @@ def create_model(model_params_dict,
     """
 
     # make sure a correct model type is requested
-    possible_models = ['graph', 'nlp', 'combo']
+    possible_models = ['graph', 'text', 'combo']
     assert model_params_dict['model_type'].lower() in possible_models, f"Model type must be one of {possible_models} not {model_params_dict['model_type']}"
         
     # create the model
@@ -44,8 +44,8 @@ def create_model(model_params_dict,
                           num_classes=model_params_dict['num_classes'], 
                           num_node_features=model_params_dict['num_node_features'], 
                           graph_layers_sizes=model_params_dict['graph_layers_sizes'],  
-                          nlp_embed_dim=model_params_dict['nlp_embed_dim'], 
-                          nlp_output_dim=model_params_dict['nlp_output_dim'], 
+                          text_embed_dim=model_params_dict['text_embed_dim'], 
+                          text_output_dim=model_params_dict['text_output_dim'], 
                           linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
                           dropout_rate=model_params_dict['dropout_rate'],
                           vocab_size=model_params_dict['vocab_size'])
@@ -60,8 +60,8 @@ def create_model(model_params_dict,
                           num_classes=model_params_dict['num_classes'], 
                           num_node_features=model_params_dict['num_node_features'], 
                           graph_layers_sizes=model_params_dict['graph_layers_sizes'],  
-                          nlp_embed_dim=model_params_dict['nlp_embed_dim'], 
-                          nlp_output_dim=model_params_dict['nlp_output_dim'], 
+                          text_embed_dim=model_params_dict['text_embed_dim'], 
+                          text_output_dim=model_params_dict['text_output_dim'], 
                           linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
                           dropout_rate=model_params_dict['dropout_rate'],
                           vocab_size=model_params_dict['vocab_size'])
@@ -222,7 +222,8 @@ def train_helper(model: torch.nn.Module,
             with torch.set_grad_enabled(mode=True):
                 
                 # make predicitions
-                out = model(inputs)
+                out, emb = model(inputs)
+                print(emb)
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)

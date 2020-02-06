@@ -339,8 +339,6 @@ class MoleculeDataset():
         molecule.text = process_smiles_for_nlp(self.X[idx], 
                                                self.stoi_dict, 
                                                self.max_text_length).view(1,-1)
-        
-        molecule.smiles = self.X[idx]
 
         return molecule
     

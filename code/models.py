@@ -5,6 +5,9 @@ import torch.nn.functional as F
 
 import copy
 
+from sklearn.decomposition import PCA
+pca = PCA()
+
 ############################ MODEL CLASSES ############################
 
 class GraphNet(torch.nn.Module):
@@ -32,13 +35,13 @@ class GraphNet(torch.nn.Module):
 
         return sum_vector
     
-class NLPNet(torch.nn.Module):
+class TextNet(torch.nn.Module):
     def __init__(self, 
                  vocab_size: int,
                  output_dim: int, 
                  emb_dim: int):
         
-        super(NLPNet, self).__init__() 
+        super(TextNet, self).__init__() 
         self.embedding = Embedding(vocab_size, emb_dim)
         self.rnn = LSTM(emb_dim, 
                         output_dim//2, 
@@ -49,12 +52,13 @@ class NLPNet(torch.nn.Module):
     def forward(self, data):
         
         # get embedding and pass through LSTM
-        output, (hidden, cell) = self.rnn(self.embedding(data.text))
+        emb = self.embedding(data.text)
+        output, (hidden, cell) = self.rnn(emb)
 
         #concat the final forward and backward hidden layers and apply dropout
         hidden = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1)
             
-        return hidden.squeeze(0)
+        return hidden.squeeze(0), emb
 
     
 class FullModel(torch.nn.Module):
@@ -64,8 +68,8 @@ class FullModel(torch.nn.Module):
                  num_node_features: int,  
                  graph_layers_sizes: list,
                  vocab_size: int,
-                 nlp_embed_dim: int,
-                 nlp_output_dim: int,
+                 text_embed_dim: int,
+                 text_output_dim: int,
                  linear_layers_sizes: list,
                  dropout_rate: float):
         
@@ -73,15 +77,15 @@ class FullModel(torch.nn.Module):
         
         self.model_type = model_type.lower()
         self.graph_net = GraphNet(num_node_features,graph_layers_sizes)
-        self.nlp_net = NLPNet(vocab_size,nlp_output_dim,nlp_embed_dim)
+        self.text_net = TextNet(vocab_size,text_output_dim,text_embed_dim)
         self.dropout = Dropout(dropout_rate)
         
         if self.model_type == 'graph':
             linear_layer_input = graph_layers_sizes[-1]
-        elif self.model_type == 'nlp':
-            linear_layer_input = nlp_output_dim
+        elif self.model_type == 'text':
+            linear_layer_input = text_output_dim
         elif self.model_type == 'combo':
-            linear_layer_input = graph_layers_sizes[-1]+nlp_output_dim
+            linear_layer_input = graph_layers_sizes[-1]+text_output_dim
             
         linear_layers_sizes = copy.copy(linear_layers_sizes)
         linear_layers_sizes.insert(0,linear_layer_input)
@@ -95,17 +99,17 @@ class FullModel(torch.nn.Module):
         
         if self.model_type == 'graph':
             x = self.graph_net(data)
-        elif self.model_type == 'nlp':
-            x = self.nlp_net(data)
+        elif self.model_type == 'text':
+            x, emb = self.text_net(data)
         elif self.model_type == 'combo':
-            text_vec = self.nlp_net(data)
+            text_vec = self.text_net(data)
             graph_vec = self.graph_net(data)
             x = torch.cat([text_vec,graph_vec],1)
 
         for layer in self.linear_layers:
             x = self.dropout(F.relu(layer(x)))
         preds = self.predictor(x)
-        return preds
+        return preds, emb
     
     
 class GoogleGraphNet(torch.nn.Module):

@@ -1,5 +1,5 @@
 # directory to find the data
-data_dir='../processed_data/sider/all_side_effects/'
+data_dir='processed_data/sider/all_side_effects/'
 label='blood pressure increased'
 
 # model creation parameters
@@ -7,14 +7,14 @@ model_type='combo'
 pretrain_load_path=None
 
 # graph model parameters
-graph_layers_sizes=[15,20,27,36]
+graph_layers_sizes=[16,20]
 
 # nlp model parameters
-nlp_embed_dim=100
-nlp_output_dim=50
+text_embed_dim=30
+text_output_dim=10
 
 # fully connect linear model parameters
-linear_layers_sizes=[100,200,100]
+linear_layers_sizes=[50,80]
 
 # model training parameters
 num_epochs=50
