@@ -11,7 +11,7 @@ graph_layers_sizes=[16,20]
 
 # nlp model parameters
 text_embed_dim=30
-text_output_dim=10
+text_output_dim=20
 
 # fully connect linear model parameters
 linear_layers_sizes=[50,80]

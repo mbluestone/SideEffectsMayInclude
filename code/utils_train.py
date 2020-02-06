@@ -222,8 +222,7 @@ def train_helper(model: torch.nn.Module,
             with torch.set_grad_enabled(mode=True):
                 
                 # make predicitions
-                out, emb = model(inputs)
-                print(emb.size())
+                out = model(inputs)
                 
                 # calculate loss
                 train_loss = criterion(out, inputs.y)

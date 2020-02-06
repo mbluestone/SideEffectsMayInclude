@@ -58,7 +58,7 @@ class TextNet(torch.nn.Module):
         #concat the final forward and backward hidden layers and apply dropout
         hidden = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1)
             
-        return hidden.squeeze(0), emb
+        return hidden.squeeze(0)
 
     
 class FullModel(torch.nn.Module):
@@ -100,16 +100,16 @@ class FullModel(torch.nn.Module):
         if self.model_type == 'graph':
             x = self.graph_net(data)
         elif self.model_type == 'text':
-            x, emb = self.text_net(data)
+            x = self.text_net(data)
         elif self.model_type == 'combo':
-            text_vec, emb = self.text_net(data)
+            text_vec = self.text_net(data)
             graph_vec = self.graph_net(data)
             x = torch.cat([text_vec,graph_vec],1)
 
         for layer in self.linear_layers:
             x = self.dropout(F.relu(layer(x)))
         preds = self.predictor(x)
-        return preds, emb
+        return preds
     
     
 class GoogleGraphNet(torch.nn.Module):
