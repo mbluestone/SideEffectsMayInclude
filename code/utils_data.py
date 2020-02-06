@@ -17,7 +17,7 @@ from torch_geometric.data import Data, Dataset, DataLoader
 
 from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
-path_to_atom_info = '../raw_data/atom_info.txt'
+path_to_atom_info = 'raw_data/atom_info.txt'
 
 def load_raw_data(path,label=None):
     '''
