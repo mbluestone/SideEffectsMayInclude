@@ -298,10 +298,7 @@ def train_helper(model: torch.nn.Module,
                 
         # empty cuda cache
         if torch.cuda.is_available(): torch.cuda.empty_cache()
-
-        # step scheduler
-        scheduler.step()
-
+            
         # Validation
         model.eval()
 
