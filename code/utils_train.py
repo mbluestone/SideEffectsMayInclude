@@ -411,7 +411,7 @@ def train_helper(model: torch.nn.Module,
                     "optimizer_state_dict": optimizer.state_dict(), 
                     "scheduler_state_dict": scheduler.state_dict(),
                     "model_params_dict": model_params_dict}, 
-                    f="../trained_models/{}_model.pt".format(model_params_dict['model_type']))
+                    f="trained_models/{}_model.pt".format(model_params_dict['model_type']))
     
     # Print training information at the end.
     print(f"\nTraining complete in "

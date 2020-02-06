@@ -17,7 +17,7 @@ from torch_geometric.data import Data, Dataset, DataLoader
 
 from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
-path_to_atom_info = '../raw_data/atom_info.txt'
+path_to_atom_info = 'raw_data/atom_info.txt'
 
 def load_raw_data(path,label=None):
     '''
@@ -163,7 +163,7 @@ def get_graph_and_text_data(model_params_dict: dict,
     else:
         
         # load TEXT field from 
-        with open("../trained_models/TEXT.Field","rb")as f:
+        with open("trained_models/TEXT.Field","rb")as f:
              TEXT=dill.load(f)
                 
     # get size of vocabulary            
