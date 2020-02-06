@@ -299,112 +299,109 @@ def train_helper(model: torch.nn.Module,
         # step scheduler
         scheduler.step()
 
-#         # Validation
-#         model.eval()
+        # Validation
+        model.eval()
 
-#         # initialize running loss and accuracy for the epoch
-#         val_running_loss = 0.0
-#         val_running_accuracy = 0.0
-#         val_running_precision = 0.0
-#         val_running_recall = 0.0
-#         val_running_f1 = 0.0
-#         val_running_roc_auc = 0.0
+        # initialize running loss and accuracy for the epoch
+        val_running_loss = 0.0
+        val_running_accuracy = 0.0
+        val_running_precision = 0.0
+        val_running_recall = 0.0
+        val_running_f1 = 0.0
+        val_running_roc_auc = 0.0
         
-#         all_val_labels = np.array([])
-#         all_val_predictions = np.array([])
+        all_val_labels = np.array([])
+        all_val_predictions = np.array([])
 
-#         # loop through batched validation data
-#         for inputs in dataloaders['val']:
+        # loop through batched validation data
+        for inputs in dataloaders['val']:
             
-#             # send to device
-#             inputs.y = inputs.y.to(device)
-#             inputs.x = inputs.x.to(device)
-#             if 'edge_index' in dir(inputs):
-#                 inputs.edge_index = inputs.edge_index.to(device)
-#                 inputs.batch = inputs.batch.to(device)
+            # send to device
+            inputs.y = inputs.y.to(device)
+            inputs.x = inputs.x.to(device)
+            if 'edge_index' in dir(inputs):
+                inputs.edge_index = inputs.edge_index.to(device)
+                inputs.batch = inputs.batch.to(device)
 
-#             with torch.set_grad_enabled(mode=False):
+            with torch.set_grad_enabled(mode=False):
                 
-#                 # make predicitions
-#                 out = model(inputs)
+                # make predicitions
+                out = model(inputs)
                 
-#                 # calculate loss
-#                 val_loss = criterion(out, inputs.y)
+                # calculate loss
+                val_loss = criterion(out, inputs.y)
                 
-#                 # pull out batch labels
-#                 val_batch_labels = inputs.y.cpu().numpy()
+                # pull out batch labels
+                val_batch_labels = inputs.y.cpu().numpy()
                 
-#                 val_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
-#                 val_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
+                val_batch_probs = torch.sigmoid(out).detach().cpu().numpy()
+                val_batch_predictions = (torch.sigmoid(out)>0.5).detach().cpu().numpy()
                 
-#                 # calculate performance metrics
-#                 val_acc = 1-hamming_loss(val_batch_labels,val_batch_predictions)
-#                 val_precision = precision_score(val_batch_labels,val_batch_predictions,
-#                                                 average='micro',zero_division=0)
-#                 val_recall = recall_score(val_batch_labels,val_batch_predictions,
-#                                           average='micro',zero_division=0)
-#                 val_f1 = f1_score(val_batch_labels,val_batch_predictions,
-#                                   average='micro',zero_division=0)
-#                 val_roc_auc = roc_auc_score(val_batch_labels,val_batch_probs,
-#                                             average='micro')
+                # calculate performance metrics
+                val_acc = 1-hamming_loss(val_batch_labels,val_batch_predictions)
+                val_precision = precision_score(val_batch_labels,val_batch_predictions,
+                                                average='micro',zero_division=0)
+                val_recall = recall_score(val_batch_labels,val_batch_predictions,
+                                          average='micro',zero_division=0)
+                val_f1 = f1_score(val_batch_labels,val_batch_predictions,
+                                  average='micro',zero_division=0)
+                val_roc_auc = roc_auc_score(val_batch_labels,val_batch_probs,
+                                            average='micro')
 
-#             # update running metrics
-#             val_running_loss += val_loss.item() * inputs.y.size(0)
-#             val_running_accuracy += val_acc * inputs.y.size(0)
-#             val_running_precision += val_precision * inputs.y.size(0)
-#             val_running_recall += val_recall * inputs.y.size(0)
-#             val_running_f1 += val_f1 * inputs.y.size(0)
-#             val_running_roc_auc += val_roc_auc * inputs.y.size(0)
+            # update running metrics
+            val_running_loss += val_loss.item() * inputs.y.size(0)
+            val_running_accuracy += val_acc * inputs.y.size(0)
+            val_running_precision += val_precision * inputs.y.size(0)
+            val_running_recall += val_recall * inputs.y.size(0)
+            val_running_f1 += val_f1 * inputs.y.size(0)
+            val_running_roc_auc += val_roc_auc * inputs.y.size(0)
             
-#             if all_val_labels.size == 0:
-#                 all_val_labels = val_batch_labels
-#                 all_val_predictions = val_batch_predictions
-#             else:
-#                 all_val_labels = np.vstack((all_val_labels,val_batch_labels))
-#                 all_val_predictions = np.vstack((all_val_predictions,val_batch_predictions))
+            if all_val_labels.size == 0:
+                all_val_labels = val_batch_labels
+                all_val_predictions = val_batch_predictions
+            else:
+                all_val_labels = np.vstack((all_val_labels,val_batch_labels))
+                all_val_predictions = np.vstack((all_val_predictions,val_batch_predictions))
 
-#         # calculate validation metrics for the epoch
-#         epoch_val_loss = np.round(val_running_loss/dataset_sizes['val'],
-#                                   decimals=4)
-#         epoch_val_acc = np.round(val_running_accuracy/dataset_sizes['val'],
-#                                   decimals=4)
-#         epoch_val_precision = np.round(val_running_precision/dataset_sizes['val'],
-#                                   decimals=4)
-#         epoch_val_recall = np.round(val_running_recall/dataset_sizes['val'],
-#                                   decimals=4)
-#         epoch_val_f1 = np.round(val_running_f1/dataset_sizes['val'],
-#                                   decimals=4)
-#         epoch_val_roc_auc = np.round(val_running_roc_auc/dataset_sizes['val'],
-#                                      decimals=4)
+        # calculate validation metrics for the epoch
+        epoch_val_loss = np.round(val_running_loss/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_acc = np.round(val_running_accuracy/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_precision = np.round(val_running_precision/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_recall = np.round(val_running_recall/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_f1 = np.round(val_running_f1/dataset_sizes['val'],
+                                  decimals=4)
+        epoch_val_roc_auc = np.round(val_running_roc_auc/dataset_sizes['val'],
+                                     decimals=4)
         
-#         # empty cuda cache
-#         if torch.cuda.is_available():
-#             torch.cuda.empty_cache()
+        # empty cuda cache
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-#         # step scheduler
-#         scheduler.step()
+        # step scheduler
+        scheduler.step()
 
-#         print(f'Validation:\n'
-#               f'Loss = {epoch_val_loss}, ' 
-#               f'Accuracy = {epoch_val_acc}, '
-#               f'Precision = {epoch_val_precision}, '
-#               f'Recall = {epoch_val_recall}, '
-#               f'F1 = {epoch_val_f1}, '
-#               f'ROC_AUC = {epoch_val_roc_auc}\n') 
+        print(f'Validation:\n'
+              f'Loss = {epoch_val_loss}, ' 
+              f'Accuracy = {epoch_val_acc}, '
+              f'Precision = {epoch_val_precision}, '
+              f'Recall = {epoch_val_recall}, '
+              f'F1 = {epoch_val_f1}, '
+              f'ROC_AUC = {epoch_val_roc_auc}\n') 
         
-#         # print confusion matrices
-#         if print_cms:
-#             for i,label in enumerate(labels):
-#                 print('\n',label,':\n')
-#                 print(confusion_matrix(all_val_labels[:,i],all_val_predictions[:,i]))
+        # print confusion matrices
+        if print_cms:
+            for i,label in enumerate(labels):
+                print('\n',label,':\n')
+                print(confusion_matrix(all_val_labels[:,i],all_val_predictions[:,i]))
         
-#         # log metrics in log csv
-#         writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
-#             str(epoch), epoch_train_loss, epoch_train_acc, epoch_train_f1, epoch_train_roc_auc,
-#             epoch_val_loss, epoch_val_acc, epoch_val_f1, epoch_train_roc_auc).split(','))
-
-    #writer.close()
-    print(train_batch_probs)
+        # log metrics in log csv
+        writer.writerow('{},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f},{:4f}\n'.format(
+            str(epoch), epoch_train_loss, epoch_train_acc, epoch_train_f1, epoch_train_roc_auc,
+            epoch_val_loss, epoch_val_acc, epoch_val_f1, epoch_train_roc_auc).split(','))
     
     # save model
     torch.save(obj={"model_state_dict": model.state_dict(), 
