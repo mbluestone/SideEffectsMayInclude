@@ -185,11 +185,8 @@ def get_graph_and_text_data(model_params_dict: dict,
 
     # get the size of each dataset
     dataset_sizes = {x: len(datasets[x]) for x in phase_names}
-   
-    # padding index
-    pad_idx = torch.tensor(TEXT.vocab.stoi[TEXT.pad_token])
     
-    return dataloaders, dataset_sizes, num_node_features, vocab_size, pad_idx
+    return dataloaders, dataset_sizes, num_node_features, vocab_size
 
 def load_data_for_model(model_params_dict: dict, 
                         device: torch.device, 
@@ -211,11 +208,11 @@ def load_data_for_model(model_params_dict: dict,
         pos_weight = get_pos_weights(np.matrix(labels_df).reshape(-1,1))
     
     # load and process data for model
-    dataloaders, dataset_sizes, num_node_features, vocab_size, pad_idx = get_graph_and_text_data(model_params_dict, 
+    dataloaders, dataset_sizes, num_node_features, vocab_size = get_graph_and_text_data(model_params_dict, 
                                                                                                  labels, 
                                                                                                  training)
         
-    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size, pad_idx
+    return dataloaders, dataset_sizes, pos_weight, labels, num_node_features, vocab_size
 
 class Molecule(Data):
     '''

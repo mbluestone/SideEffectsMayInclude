@@ -48,8 +48,7 @@ def create_model(model_params_dict,
                           nlp_output_dim=model_params_dict['nlp_output_dim'], 
                           linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
                           dropout_rate=model_params_dict['dropout_rate'],
-                          vocab_size=model_params_dict['vocab_size'],
-                          pad_idx=model_params_dict['pad_idx'])
+                          vocab_size=model_params_dict['vocab_size'])
     
 
     # if loading a pretrained model from a state dict
@@ -65,8 +64,7 @@ def create_model(model_params_dict,
                           nlp_output_dim=model_params_dict['nlp_output_dim'], 
                           linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
                           dropout_rate=model_params_dict['dropout_rate'],
-                          vocab_size=model_params_dict['vocab_size'],
-                          pad_idx=model_params_dict['pad_idx'])
+                          vocab_size=model_params_dict['vocab_size'])
 
         model.load_state_dict(state_dict=ckpt["model_state_dict"], 
                               map_location=device)
@@ -103,7 +101,7 @@ def train_model():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size,pad_idx = load_data_for_model(model_params_dict,device,training=True)
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(model_params_dict,device,training=True)
     
     print(f"num labels: {len(labels)}\n"
           f"num train molecules {dataset_sizes['train']}\n"
@@ -114,8 +112,6 @@ def train_model():
     model_params_dict['vocab_size'] = vocab_size
     model_params_dict['num_node_features'] = num_node_features
     model_params_dict['num_classes'] = len(labels)
-    pad_idx = pad_idx.to(device)
-    model_params_dict['pad_idx'] = pad_idx.to(device)
     
     # instantiate model
     model = create_model(model_params_dict=model_params_dict,
@@ -219,6 +215,7 @@ def train_helper(model: torch.nn.Module,
             inputs.x = inputs.x.to(device)
             inputs.edge_index = inputs.edge_index.to(device)
             inputs.batch = inputs.batch.to(device)
+            inputs.text = inputs.text.to(device)
 
             # 
             optimizer.zero_grad()
