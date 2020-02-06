@@ -102,9 +102,9 @@ class FullModel(torch.nn.Module):
         elif self.model_type == 'text':
             x, emb = self.text_net(data)
         elif self.model_type == 'combo':
-            text_vec = self.text_net(data)
+            text_vec, emb = self.text_net(data)
             graph_vec = self.graph_net(data)
-            x = torch.cat([text_vec[0],graph_vec],1)
+            x = torch.cat([text_vec,graph_vec],1)
 
         for layer in self.linear_layers:
             x = self.dropout(F.relu(layer(x)))
