@@ -17,7 +17,7 @@ from torch_geometric.data import Data, Dataset, DataLoader
 
 from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
-path_to_atom_info = 'raw_data/atom_info.txt'
+path_to_atom_info = '../raw_data/atom_info.txt'
 
 def load_raw_data(path,label=None):
     '''
@@ -127,7 +127,7 @@ def process_smiles_for_nlp(smiles,
                            stoi_dict,
                            max_length):
     
-    bigram_smiles = generate_bigrams(smiles)
+    bigram_smiles = generate_bigrams(smiles.lower())
     tensor_smiles = smiles_to_tensor(bigram_smiles,stoi_dict)
     padded_smiles = pad_tensor(tensor_smiles,max_length)
     
@@ -339,6 +339,8 @@ class MoleculeDataset():
         molecule.text = process_smiles_for_nlp(self.X[idx], 
                                                self.stoi_dict, 
                                                self.max_text_length).view(1,-1)
+        
+        molecule.smiles = self.X[idx]
 
         return molecule
     
