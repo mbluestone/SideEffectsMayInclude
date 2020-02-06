@@ -296,9 +296,6 @@ def train_helper(model: torch.nn.Module,
                 print('\n',label,':\n')
                 print(confusion_matrix(all_train_labels[:,i],all_train_predictions[:,i]))
                 
-        # empty cuda cache
-        if torch.cuda.is_available(): torch.cuda.empty_cache()
-            
         # Validation
         model.eval()
 
