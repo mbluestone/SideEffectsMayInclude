@@ -322,9 +322,9 @@ def train_helper(model: torch.nn.Module,
             # send to device
             inputs.y = inputs.y.to(device)
             inputs.x = inputs.x.to(device)
-            if 'edge_index' in dir(inputs):
-                inputs.edge_index = inputs.edge_index.to(device)
-                inputs.batch = inputs.batch.to(device)
+            inputs.edge_index = inputs.edge_index.to(device)
+            inputs.batch = inputs.batch.to(device)
+            inputs.text = inputs.text.to(device)
 
             with torch.set_grad_enabled(mode=False):
                 
