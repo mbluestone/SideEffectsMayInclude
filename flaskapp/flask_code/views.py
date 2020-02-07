@@ -5,7 +5,7 @@ from flask_code import app
 # from sqlalchemy_utils import database_exists, create_database
 # import pandas as pd
 # import psycopg2
-from model_prediction import make_prediction
+from flask_code import make_prediction
 
 model_path = '../../trained_models/common_combo.pt'
 
