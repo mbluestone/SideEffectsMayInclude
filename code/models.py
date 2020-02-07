@@ -102,6 +102,8 @@ class FullModel(torch.nn.Module):
         elif self.model_type == 'combo':
             text_vec = self.text_net(data)
             graph_vec = self.graph_net(data)
+            if len(text_vec.size())==1:
+                text_vec = text_vec.view(1,-1)  
             x = torch.cat([text_vec,graph_vec],1)
 
         for layer in self.linear_layers:

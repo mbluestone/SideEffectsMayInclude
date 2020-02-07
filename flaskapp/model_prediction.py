@@ -23,7 +23,7 @@ def make_prediction(model_path,input_smiles):
     model, model_params_dict = load_model(model_path, device) 
     
     input_molecule = Molecule(input_smiles,[],atom_info_path='../raw_data/atom_info.txt')
-    input_molecule.batch = torch.tensor([0])
+    input_molecule.batch = torch.LongTensor([0]*len(input_molecule.x))
     input_molecule.text = process_smiles_for_nlp(input_smiles,TEXT.vocab.stoi,200).view(1,-1)
     
     print('x',input_molecule.x.size())
@@ -31,7 +31,7 @@ def make_prediction(model_path,input_smiles):
     print('batch',input_molecule.batch.size())
     print('text',input_molecule.text.size())
     
-    input_molecule.to(device)
+    input_molecule = input_molecule.to(device)
     
     output = model(input_molecule)
     
