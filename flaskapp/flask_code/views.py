@@ -7,7 +7,7 @@ from flask_code import app
 # import psycopg2
 from model_prediction import make_prediction
 
-model_path = '../../trained_models/common_combo.pt'
+model_path = '../trained_models/common_combo.pt'
 
 @app.route('/')
 @app.route('/index')
