@@ -1,5 +1,5 @@
 import config
-from utils_train import evaluate_model
+from utils_eval import evaluate_model
 
 evaluate_model(data_dir=config.data_dir, # data directory
             model_type=config.model_type, # model type

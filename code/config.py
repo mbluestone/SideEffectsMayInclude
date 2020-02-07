@@ -1,6 +1,6 @@
 # directory to find the data
 data_dir='processed_data/sider/all_side_effects/'
-label='blood pressure increased'
+label=None
 
 # model creation parameters
 model_type='combo'

@@ -54,7 +54,7 @@ def create_model(model_params_dict,
     # if loading a pretrained model from a state dict
     else:
         
-        ckpt = torch.load(f=pretrain_load_path)
+        ckpt = torch.load(f=pretrain_load_path,map_location=device)
         model_params_dict = ckpt["model_params_dict"]    
         model = FullModel(model_type=model_params_dict['model_type'], 
                           num_classes=model_params_dict['num_classes'], 
@@ -66,8 +66,7 @@ def create_model(model_params_dict,
                           dropout_rate=model_params_dict['dropout_rate'],
                           vocab_size=model_params_dict['vocab_size'])
 
-        model.load_state_dict(state_dict=ckpt["model_state_dict"], 
-                              map_location=device)
+        model.load_state_dict(state_dict=ckpt["model_state_dict"])
         
     # transfer model to cpu or gpu
     model = model.to(device=device)

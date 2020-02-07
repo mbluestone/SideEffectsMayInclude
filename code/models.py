@@ -5,9 +5,6 @@ import torch.nn.functional as F
 
 import copy
 
-from sklearn.decomposition import PCA
-pca = PCA()
-
 ############################ MODEL CLASSES ############################
 
 class GraphNet(torch.nn.Module):
@@ -17,6 +14,7 @@ class GraphNet(torch.nn.Module):
         
         super(GraphNet, self).__init__()
         
+        graph_layers_sizes = copy.copy(graph_layers_sizes)
         graph_layers_sizes.insert(0,num_node_features)
         self.conv_layers = []
         for i in range(len(graph_layers_sizes) - 1):

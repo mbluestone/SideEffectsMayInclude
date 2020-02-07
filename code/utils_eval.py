@@ -1,5 +1,7 @@
 from utils_data import *
+from models import FullModel
 
+from sklearn.metrics import hamming_loss, recall_score, precision_score, f1_score, confusion_matrix, roc_auc_score
 
 ###########################################
 #            MODEL EVALUATION             #
@@ -17,21 +19,20 @@ def load_model(load_path: dict,
         The instantiated model with the requested parameters.
     """
 
-    ckpt = torch.load(f=load_path)
-    model_params_dict = ckpt["model_params_dict"]    
+    ckpt = torch.load(f=load_path, map_location=device)
+    model_params_dict = ckpt["model_params_dict"]   
+    model_params_dict['graph_layers_sizes'] = model_params_dict['graph_layers_sizes'][1:]
     model = FullModel(model_type=model_params_dict['model_type'], 
                       num_classes=model_params_dict['num_classes'], 
                       num_node_features=model_params_dict['num_node_features'], 
-                      graph_layers_sizes=model_params_dict['graph_layers_sizes'],  
-                      num_lstm_layers=model_params_dict['num_lstm_layers'], 
-                      nlp_embed_dim=model_params_dict['nlp_embed_dim'], 
-                      nlp_output_dim=model_params_dict['nlp_output_dim'], 
+                      graph_layers_sizes=model_params_dict['graph_layers_sizes'],   
+                      text_embed_dim=model_params_dict['text_embed_dim'], 
+                      text_output_dim=model_params_dict['text_output_dim'], 
                       linear_layers_sizes=model_params_dict['linear_layers_sizes'], 
                       dropout_rate=model_params_dict['dropout_rate'],
                       vocab_size=model_params_dict['vocab_size'])
 
-    model.load_state_dict(state_dict=ckpt["model_state_dict"], 
-                          map_location=device)
+    model.load_state_dict(state_dict=ckpt["model_state_dict"])
         
     # transfer model to cpu or gpu
     model = model.to(device=device)
@@ -51,11 +52,9 @@ def evaluate_model(model_path,
     print(f"model loaded from {model_path}")
     
     # load data objects
-    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(test_data_dir, 
+    model_params_dict['data_dir']=test_data_dir
+    dataloaders,dataset_sizes,pos_weight,labels,num_node_features,vocab_size = load_data_for_model(model_params_dict, 
                                                                                                    device, 
-                                                                                                   model_params_dict['model_type'], 
-                                                                                                   model_params_dict['batch_size'], 
-                                                                                                   ngram=2, 
                                                                                                    training=False)
     
     # Testing

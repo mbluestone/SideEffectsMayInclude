@@ -17,8 +17,6 @@ from torch_geometric.data import Data, Dataset, DataLoader
 
 from torchtext.data import Field, TabularDataset, Iterator, BucketIterator
 
-path_to_atom_info = 'raw_data/atom_info.txt'
-
 def load_raw_data(path,label=None):
     '''
     Custom data loading function specific for my preprocessed dataset, 
@@ -158,12 +156,15 @@ def get_graph_and_text_data(model_params_dict: dict,
 
         TEXT.build_vocab(train)
         
+        with open("../trained_models/TEXT.Field","wb")as f:
+            dill.dump(TEXT,f)
+        
         
     # if testing
     else:
         
         # load TEXT field from 
-        with open("trained_models/TEXT.Field","rb")as f:
+        with open("../trained_models/TEXT.Field","rb")as f:
              TEXT=dill.load(f)
                 
     # get size of vocabulary            
@@ -219,11 +220,14 @@ class Molecule(Data):
     Molecule Data Class
     Subclass of torch-geometric.data.Data
     '''
-    def __init__(self, smiles_string: str, y_list: list):
+    def __init__(self, 
+                 smiles_string: str, 
+                 y_list: list,
+                 atom_info_path='../raw_data/atom_info.txt'):
         """
         Args:
             smiles_string (string): SMILES for the molecule.
-            y_list (list): list of multilabels.
+            y_list (list or int): list of multilabels or single label.
         """
 
         # create graph from smiles 
@@ -231,6 +235,8 @@ class Molecule(Data):
         sys.stdout = open(os.devnull, 'w')
         self.graph = read_smiles(smiles_string)
         sys.stdout = sys.__stdout__
+        
+        self.atom_info_path = atom_info_path
         
         if isinstance(y_list,list):
             y = torch.tensor(y_list, dtype=torch.float32)
@@ -246,6 +252,7 @@ class Molecule(Data):
         
         # remove graph attribute, necessary to inherit from superclass
         del self.graph
+        del self.atom_info_path
     
     def extract_features(self):
         
@@ -268,7 +275,7 @@ class Molecule(Data):
     
     def convert_atom_to_vector(self,atom):
         
-        atom_dict = pd.read_csv(path_to_atom_info,sep=',').set_index('Symbol')['AtomicNumber'].to_dict()
+        atom_dict = pd.read_csv(self.atom_info_path,sep=',').set_index('Symbol')['AtomicNumber'].to_dict()
         feature_vector = np.array([])
         feature_vector = np.append(feature_vector,int(atom_dict[atom['element']]))
         feature_vector = np.append(feature_vector,atom['charge'])
