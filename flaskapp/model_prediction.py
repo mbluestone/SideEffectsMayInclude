@@ -24,7 +24,7 @@ def make_prediction(model_path,input_smiles):
     
     input_molecule = Molecule(input_smiles,[],atom_info_path='../raw_data/atom_info.txt')
     input_molecule.batch = torch.tensor([0])
-    input_molecule.text = process_smiles_for_nlp(input_smiles,TEXT.vocab.stoi,200)
+    input_molecule.text = process_smiles_for_nlp(input_smiles,TEXT.vocab.stoi,200).view(1,-1)
     
     print('x',input_molecule.x.size())
     print('edge_index',input_molecule.edge_index.size())
