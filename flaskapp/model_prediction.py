@@ -5,6 +5,7 @@ from os.path import dirname
 from os.path import join as path_join
 
 import torch
+import dill
 
 from utils_eval import load_model
 from utils_data import Molecule, process_smiles_for_nlp
