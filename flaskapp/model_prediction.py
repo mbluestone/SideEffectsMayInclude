@@ -1,5 +1,5 @@
 import sys
-sys.path.append("../../code")
+sys.path.append("../code")
 
 from os.path import dirname
 from os.path import join as path_join
