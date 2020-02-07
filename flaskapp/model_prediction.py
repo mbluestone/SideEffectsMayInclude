@@ -6,6 +6,7 @@ from os.path import join as path_join
 
 import torch
 import dill
+import pandas as pd
 
 from utils_eval import load_model
 from utils_data import Molecule, process_smiles_for_nlp
@@ -36,6 +37,8 @@ def make_prediction(model_path,input_smiles):
     output = model(input_molecule)
     
     probs = torch.sigmoid(output).detach().cpu().numpy()
-    predictions = (torch.sigmoid(output)>0.5).detach().cpu().numpy()
+    prediction_mask = (torch.sigmoid(output)>0.5).detach().cpu().numpy()[0]
+    labels = pd.read_csv('../processed_data/sider/common_sider.csv').columns.tolist()[1:]
+    predictions = {labels[i]:probs[0][i] for i in range(len(labels)) if prediction_mask[i]}
     
-    return probs, predictions
+    return predictions, probs
