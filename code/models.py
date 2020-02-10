@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Linear, Dropout, BCEWithLogitsLoss, Softmax, ModuleList, LSTM, Embedding
+from torch.nn import Linear, Dropout, Softmax, ModuleList, LSTM, Embedding
 from torch_geometric.nn import GCNConv, global_add_pool
 import torch.nn.functional as F
 
