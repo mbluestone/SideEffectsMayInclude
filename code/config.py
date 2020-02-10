@@ -26,4 +26,8 @@ batch_size=64
 
 # logging
 log_file=None
-log_csv = 'logs/combo_log.csv'
+log_csv = 'logs/train_log.csv'
+
+# model evaluation parameters
+test_out_file="test_predictions.csv",
+test_model_path="trained_models/trained_model.pt"

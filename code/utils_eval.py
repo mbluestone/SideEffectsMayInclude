@@ -134,11 +134,7 @@ def evaluate_model(model_path,
           f'F1 = {f1}, '
           f'ROC_AUC = {roc_auc}\n') 
 
-    # print confusion matrices
-    for i,label in enumerate(labels):
-        print('\n',label,':\n')
-        print(confusion_matrix(all_labels[:,i],all_predictions[:,i]))
-        
+    # save out predictions
     pd.DataFrame(all_probs,columns=labels).to_csv(out_file,index=False)
     
 ###########################################
