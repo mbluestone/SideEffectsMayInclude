@@ -1,4 +1,9 @@
 /raw_data/drugbank_data/
+/notebooks/*
 .DS_Store
 .ipynb_checkpoints
 __pycache__/
+/images/
+/trained_models/
+/model_predictions/
+/drugbank_parsing/
