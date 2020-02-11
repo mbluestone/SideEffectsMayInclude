@@ -10,11 +10,11 @@ Then, build the Docker image:
 
 `docker build .`
 
-Note: this takes a while and you might run into a memory overflow error. If that happens can you change your Docker memory settings in `Docker > Preference > Memory`
+Note: this takes a while and you might run into a memory overflow error. If that happens can you change your Docker memory settings in `Docker > Preferences > Memory`.
 
 ### Data
 
-Input data needs to be in CSV file with the rows representing each drug. The first column should be the SMILES string for each drug, while the rest of the columns should be a binary label for each side effect in the data set. An example of data in the correct format can be found in the `preprocessed_data/sider/` folder.
+Input data needs to be in a CSV file with the rows representing each drug. The first column should be the SMILES string for each drug, while the rest of the columns should be a binary label for each side effect in the data set. An example of data in the correct format can be found in the `preprocessed_data/sider/` folder.
 
 The `split_data` function in `utils_data.py` can be used to split an imbalanced multilabel dataset in an iterative fashion to preserve class distribution across training, validation, and testing sets. The split datasets are saved as `train.csv`, `val.csv`, and `test.csv`.
 
